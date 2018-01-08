@@ -43,7 +43,7 @@ from math import degrees
 class construction_point():
     def __init__(self, point_coord, point_normal):
         self.point = point_coord
-        if point_normal is not None: 
+        if point_normal is not None:
             self.normal = point_normal
         else:
             self.normal = Vector((0.0,0.0,1.0))
@@ -109,7 +109,7 @@ def get_faces_with_normal(pNormal, pTolerance):
     """Return a list of faces that have similar normal"""
     #TODO
     return []
-    
+
 def draw_callback_px(self, context):
     region = context.region
     rv3d = context.space_data.region_3d
@@ -244,10 +244,10 @@ def orient_object_to_normal(context,pNormVect,pObject):
     vec2 = Vector(0,0,-1) # Make a vector for the end point of the ray (below the object)
     vec3 = vec2 * mat # Convert the end point into local coords of the ob
     vec4 = vec1 + vec3 # Add the end point to the position vector to account for translation
-        
+
     ray = pObject.rayCast(vec4, ob, 15, '') # Cast a ray
-        
-    if ray[0]: 
+
+    if ray[0]:
         pObject.alignAxisToVect(ray[2], 2, 1) # Align the object to the hit normal of the ray
 
 
@@ -318,7 +318,7 @@ class Generate_room_operator(bpy.types.Operator):
     def execute(self, context):
         generate_room(context,self.height)
         return {'FINISHED'}
-        
+
 class ModalDrawLineOperator(bpy.types.Operator):
     """Draw a line with the mouse"""
     bl_idname = "view3d.modal_operator"
@@ -375,7 +375,7 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
         for obj, matrix in self.visible_objects_and_duplis(context):
             if obj.type != 'MESH':
-                continue 
+                continue
             hit, normal, face_index = self.obj_ray_cast(obj, matrix,ray_origin,ray_target)
             if hit is not None:
                 hit_world = matrix * hit
@@ -415,7 +415,7 @@ class ModalDrawLineOperator(bpy.types.Operator):
             obj.select = False
             if obj.name.startswith('Basic_Cube'):
                 obj.select = True
-        
+
         bpy.ops.object.delete(use_global=True)
 
 
@@ -432,23 +432,25 @@ class ModalDrawLineOperator(bpy.types.Operator):
         for i in range(len(self.list_construction_points)):
             vert_0 = self.list_construction_points[i].point
 
-            try: 
+            try:
                 vert_1 = self.list_construction_points[i+1].point
-                tot_len += (vert_0-vert_1).length
+                edge_length = (vert_0-vert_1).length
 
                 direction_x = vert_1-vert_0
 
                 v0 = Vector(( 1.0,0,0 ))
 
                 rot = v0.rotation_difference( direction_x ).to_euler()
-                print(rot)
 
-                cube  = self.add_cube(context)
-                cube.rotation_euler = rot
-                cube.location = vert_0
+                cube_nbr = int(round(edge_length //1))
+                pas = direction_x/cube_nbr
+                for i in range(0,cube_nbr):
+                    cube  = self.add_cube(context)
+                    cube.rotation_euler = rot
+                    cube.location = vert_0 + i*pas
 
 
-            except: 
+            except:
                 break
 
         if self.surface_found:
@@ -516,11 +518,11 @@ class ModalDrawLineOperator(bpy.types.Operator):
                 self.surface_normal = best_hit + best_normal
                 self.surface_hit = best_hit
 
-            
+
 
         elif event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
-                
+
                 coord_mouse = Vector((event.mouse_region_x, event.mouse_region_y))
                 best_hit,best_obj,best_normal,best_face_index = self.get_ray_cast_result(context,coord_mouse)
 
@@ -539,8 +541,21 @@ class ModalDrawLineOperator(bpy.types.Operator):
                 self.update_mouse_action(context)
             elif event.value == 'RELEASE':
                 pass
+        elif event.type == 'RIGHTMOUSE':
+            if event.value == 'PRESS':
+                if not self.list_construction_points:
+                    self.depth_location = Vector((0.0, 0.0, 0.0))
+                elif len(self.list_construction_points) == 1:
+                    self.list_construction_points.pop()
+                    self.depth_location = Vector((0.0, 0.0, 0.0))
+                else:
+                    self.list_construction_points.pop()
+                    self.depth_location = self.list_construction_points[-1].point
+                self.update_mouse_action(context)
+            elif event.value == 'RELEASE':
+                pass
 
-        elif event.type in {'RIGHTMOUSE','RET'}:
+        elif event.type in {'RET'}:
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             self.execute(context)
             return {'FINISHED'}
@@ -555,7 +570,7 @@ class ModalDrawLineOperator(bpy.types.Operator):
     def invoke(self, context, event):
         if context.area.type == 'VIEW_3D':
             # the arguments we pass the the callback
-            
+
             args = (self, context)
 
             # Add the region OpenGL drawing callback
