@@ -34,6 +34,7 @@ import bgl
 import blf
 import bmesh
 import bpy_extras
+import re
 from mathutils import Vector, Matrix
 from itertools import chain, islice
 from math import degrees
@@ -144,16 +145,6 @@ def draw_callback_px(self, context):
     bgl.glEnd()
     bgl.glDisable(bgl.GL_BLEND)
 
-
-
-
-
-
-
-
-
-
-
     # 50% alpha, 2 pixel width line
     bgl.glEnable(bgl.GL_BLEND)
     bgl.glColor4f(1.0, 0.0, 0.0, 1.0)
@@ -169,7 +160,6 @@ def draw_callback_px(self, context):
     bgl.glEnd()
     bgl.glDisable(bgl.GL_LINE_STRIP)
     bgl.glDisable(bgl.GL_BLEND)
-
 
 
     bgl.glEnable(bgl.GL_BLEND)
@@ -188,12 +178,6 @@ def draw_callback_px(self, context):
         bgl.glEnd()
         bgl.glDisable(bgl.GL_LINE_STRIP)
     bgl.glDisable(bgl.GL_BLEND)
-
-
-
-
-
-
 
     if self.surface_found: #if there is a surface under mouse cursor
         bgl.glEnable(bgl.GL_BLEND)
@@ -221,12 +205,30 @@ def get_tuple(iterable, length, format=tuple):
     while True:
         yield format(chain((next(it),), islice(it, length - 1)))
 
+def collect_part_variation(context,pPropName):
+    result = []
+    name = "prop_"+pPropName+"_var"
+    p = re.compile(name+'(_\d+)?$', re.IGNORECASE)
+    for obj in context.scene.objects:
+        match = p.match(obj.name)
+
+        if match is not None:
+            result.append(obj)
+
+    return result
+
+def duplicate_props(context,pPropName):
+    obj_to_dupli = context.scene.objects[pPropName]
+    dupli_data = obj_to_dupli.data.copy()
+    duplicata = bpy.data.objects.new("dupli_"+obj_to_dupli.name, dupli_data)
+    context.scene.objects.link(duplicata)
+
+    return duplicata
 
 ###### ______Functions Definition______ ######
 
 def unwrap_mesh_to_box(context,pScale):
     bpy.ops.uv.cube_project()
-
 
 def generate_room(context,height):
     bpy.ops.mesh.select_all(action='SELECT')
@@ -288,10 +290,7 @@ class VIEW3D_PT_BuilderEditor_edit_Panel(bpy.types.Panel):
         row.operator("uv.cube_project", icon='MOD_UVPROJECT')
 
 
-
 ###### ______Operator Definition______ ######
-
-
 class Generate_room_operator(bpy.types.Operator):
     """Generate walls and roof from selection"""
     bl_idname = "edit.generate_room"
@@ -391,44 +390,35 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
         return best_hit,best_obj,best_normal,best_face_index
 
-    def add_cube(self,context):
-        # Create an empty mesh and the object.
-        mesh = bpy.data.meshes.new('Basic_Cube')
-        basic_cube = bpy.data.objects.new("Basic_Cube", mesh)
-
-        # Add the object into the scene.
-        context.scene.objects.link(basic_cube)
-        # context.scene.objects.active = basic_cube
-        # basic_cube.select = True
-
-        # Construct the bmesh cube and assign it to the blender mesh.
-        bm = bmesh.new()
-        bmesh.ops.create_cube(bm, size=1.0)
-        bm.to_mesh(mesh)
-        bm.free()
-
-        return basic_cube
-
     def delete_all_temp_objects(self,context):
-
+        #TODO remplacer cette merde par une liste d'objet que l'on purge
         for obj in context.visible_objects:
             obj.select = False
-            if obj.name.startswith('Basic_Cube'):
+            if obj.name.startswith('dupli_prop_'):
                 obj.select = True
 
         bpy.ops.object.delete(use_global=True)
 
+    def get_props_order(pEdgeLength,pPropsCollection):
+        props_order = []
+        reach_end = False
+        i = 0
+        cur_length = 0.0
+        while cur_length < pEdgeLength and not reach_end:
+            index = i % len(pPropsCollection)
+            props_order.append({index,1.0})
+            cur_length += pPropsCollection[index].dimensions[0]
+
+        return props_order
 
 
     def update_mouse_action(self,context):
-        #on calcule la taille totale du strip
-        tot_len = 0
+
         self.delete_all_temp_objects(context)
-        if len(self.list_construction_points) == 0:
-            return tot_len
-
+        #on recupere la liste des variations de props
+        props = collect_part_variation(context,'fence')
+        print('la taille des props est ' + str(len(props)))
         vert_0 = None
-
         for i in range(len(self.list_construction_points)):
             vert_0 = self.list_construction_points[i].point
 
@@ -439,23 +429,19 @@ class ModalDrawLineOperator(bpy.types.Operator):
                 direction_x = vert_1-vert_0
 
                 v0 = Vector(( 1.0,0,0 ))
-
+                #TODO get correct rotation angle !!!!!
                 rot = v0.rotation_difference( direction_x ).to_euler()
 
                 cube_nbr = int(round(edge_length //1))
                 pas = direction_x/cube_nbr
                 for i in range(0,cube_nbr):
-                    cube  = self.add_cube(context)
-                    cube.rotation_euler = rot
-                    cube.location = vert_0 + i*pas
-
-
+                    index = i % len(props)
+                    to_dupli_name = props[index].name
+                    dupli = duplicate_props(context,to_dupli_name)
+                    dupli.rotation_euler = rot
+                    dupli.location = vert_0 + i*pas
             except:
                 break
-
-        if self.surface_found:
-            tot_len += (vert_0-self.surface_hit).length
-
 
 
     def execute(self, context):
