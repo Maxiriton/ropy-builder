@@ -50,14 +50,12 @@ class construction_point():
             self.normal = Vector((0.0,0.0,1.0))
 
 
-
-
 class Builder_Properties(bpy.types.PropertyGroup):
     """Store properties in the active scene"""
 
-    spc_NbrPoints = bpy.props.IntProperty(
-        name="Number of Points",
-        description="Number of generated points",
+    seed = bpy.props.IntProperty(
+        name="Seed",
+        description="Seed used for random generation",
         default=23,
         min=1)
 
@@ -237,6 +235,7 @@ def generate_room(context,height):
     #on separe les murs et le toit
     unwrap_mesh_to_box(context,0.1)
 
+
 def orient_object_to_normal(context,pNormVect,pObject):
     ori = pObject.orientation
     mat = Matrix(ori[0], ori[1], ori[2])
@@ -251,6 +250,98 @@ def orient_object_to_normal(context,pNormVect,pObject):
 
     if ray[0]:
         pObject.alignAxisToVect(ray[2], 2, 1) # Align the object to the hit normal of the ray
+
+def get_props_order(context,pEdgeLength,pPropsCollection):
+    props_order = []
+    reach_end = False
+    i = 0
+    cur_length = 0.0
+    while cur_length < pEdgeLength and not reach_end:
+        index = i % len(pPropsCollection)
+        props_order.append((index,1.0))
+        cur_length += pPropsCollection[index].dimensions[0]
+        i +=1
+
+    random.seed(context.scene.builder_editor.seed)
+    random.shuffle(props_order)
+
+    return props_order
+
+def obj_ray_cast(obj, matrix,ray_origin,ray_target):
+    """Wrapper for ray casting that moves the ray into object space"""
+
+    # get the ray relative to the object
+    matrix_inv = matrix.inverted()
+    ray_origin_obj = matrix_inv * ray_origin
+    ray_target_obj = matrix_inv * ray_target
+    ray_direction_obj = ray_target_obj - ray_origin_obj
+
+    # cast the ray
+    success, location, normal, face_index = obj.ray_cast(ray_origin_obj, ray_direction_obj)
+
+    if success:
+        return location, normal, face_index
+    else:
+        return None, None, None
+
+def visible_objects_and_duplis(context):
+    """Loop over (object, matrix) pairs (mesh only)"""
+
+    for obj in context.visible_objects:
+        if obj.type == 'MESH':
+            yield (obj, obj.matrix_world.copy())
+
+        if obj.dupli_type != 'NONE':
+            obj.dupli_list_create(scene)
+            for dob in obj.dupli_list:
+                obj_dupli = dob.object
+                if obj_dupli.type == 'MESH':
+                    yield (obj_dupli, dob.matrix.copy())
+
+        obj.dupli_list_clear()
+
+def get_ray_cast_result(context,coord_mouse):
+    region = context.region
+    rv3d = context.space_data.region_3d
+    # get the ray from the viewport and mouse
+    view_vector = bpy_extras.view3d_utils.region_2d_to_vector_3d(region, rv3d, coord_mouse)
+    ray_origin = bpy_extras.view3d_utils.region_2d_to_origin_3d(region, rv3d, coord_mouse)
+
+    ray_target = ray_origin + view_vector
+
+    # cast rays and find the closest object
+    best_length_squared = -1.0
+    best_obj = None
+    best_hit = None #best hit location
+    best_normal = None
+    best_face_index = None
+
+    for obj, matrix in visible_objects_and_duplis(context):
+        if obj.type != 'MESH':
+            continue
+        hit, normal, face_index = obj_ray_cast(obj, matrix,ray_origin,ray_target)
+        if hit is not None:
+            hit_world = matrix * hit
+            length_squared = (hit_world - ray_origin).length_squared
+            if best_obj is None or length_squared < best_length_squared:
+                best_length_squared = length_squared
+                best_obj = obj
+                best_hit = hit_world
+
+                rot_quaternion = matrix.decompose()[1]
+                best_normal = rot_quaternion.to_matrix() *  normal
+                best_face_index = face_index
+
+    return best_hit,best_obj,best_normal,best_face_index
+
+def delete_all_temp_objects(context):
+    #TODO remplacer cette merde par une liste d'objet que l'on purge
+    for obj in context.visible_objects:
+        obj.select = False
+        if obj.name.startswith('dupli_prop_'):
+            obj.select = True
+
+    bpy.ops.object.delete(use_global=True)
 
 
 ###### ______UI Definition______ ######
@@ -269,7 +360,12 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
         scene = context.scene
 
         row = layout.row()
+        row.prop(scene.builder_editor, "seed")
+
+        row = layout.row()
         row.operator("view3d.modal_operator", text="Draw Props", icon='IPO_ELASTIC')
+
+
 
 class VIEW3D_PT_BuilderEditor_edit_Panel(bpy.types.Panel):
     """UI for level editor in edit mode"""
@@ -323,125 +419,36 @@ class ModalDrawLineOperator(bpy.types.Operator):
     bl_idname = "view3d.modal_operator"
     bl_label = "Simple Modal View3D Operator"
 
-    def obj_ray_cast(self,obj, matrix,ray_origin,ray_target):
-        """Wrapper for ray casting that moves the ray into object space"""
-
-        # get the ray relative to the object
-        matrix_inv = matrix.inverted()
-        ray_origin_obj = matrix_inv * ray_origin
-        ray_target_obj = matrix_inv * ray_target
-        ray_direction_obj = ray_target_obj - ray_origin_obj
-
-        # cast the ray
-        success, location, normal, face_index = obj.ray_cast(ray_origin_obj, ray_direction_obj)
-
-        if success:
-            return location, normal, face_index
-        else:
-            return None, None, None
-
-    def visible_objects_and_duplis(self,context):
-        """Loop over (object, matrix) pairs (mesh only)"""
-
-        for obj in context.visible_objects:
-            if obj.type == 'MESH':
-                yield (obj, obj.matrix_world.copy())
-
-            if obj.dupli_type != 'NONE':
-                obj.dupli_list_create(scene)
-                for dob in obj.dupli_list:
-                    obj_dupli = dob.object
-                    if obj_dupli.type == 'MESH':
-                        yield (obj_dupli, dob.matrix.copy())
-
-            obj.dupli_list_clear()
-
-    def get_ray_cast_result(self,context,coord_mouse):
-        region = context.region
-        rv3d = context.space_data.region_3d
-        # get the ray from the viewport and mouse
-        view_vector = bpy_extras.view3d_utils.region_2d_to_vector_3d(region, rv3d, coord_mouse)
-        ray_origin = bpy_extras.view3d_utils.region_2d_to_origin_3d(region, rv3d, coord_mouse)
-
-        ray_target = ray_origin + view_vector
-
-        # cast rays and find the closest object
-        best_length_squared = -1.0
-        best_obj = None
-        best_hit = None #best hit location
-        best_normal = None
-        best_face_index = None
-
-        for obj, matrix in self.visible_objects_and_duplis(context):
-            if obj.type != 'MESH':
-                continue
-            hit, normal, face_index = self.obj_ray_cast(obj, matrix,ray_origin,ray_target)
-            if hit is not None:
-                hit_world = matrix * hit
-                length_squared = (hit_world - ray_origin).length_squared
-                if best_obj is None or length_squared < best_length_squared:
-                    best_length_squared = length_squared
-                    best_obj = obj
-                    best_hit = hit_world
-
-                    rot_quaternion = matrix.decompose()[1]
-                    best_normal = rot_quaternion.to_matrix() *  normal
-                    best_face_index = face_index
-
-        return best_hit,best_obj,best_normal,best_face_index
-
-    def delete_all_temp_objects(self,context):
-        #TODO remplacer cette merde par une liste d'objet que l'on purge
-        for obj in context.visible_objects:
-            obj.select = False
-            if obj.name.startswith('dupli_prop_'):
-                obj.select = True
-
-        bpy.ops.object.delete(use_global=True)
-
-    def get_props_order(pEdgeLength,pPropsCollection):
-        props_order = []
-        reach_end = False
-        i = 0
-        cur_length = 0.0
-        while cur_length < pEdgeLength and not reach_end:
-            index = i % len(pPropsCollection)
-            props_order.append({index,1.0})
-            cur_length += pPropsCollection[index].dimensions[0]
-
-        return props_order
-
 
     def update_mouse_action(self,context):
-
-        self.delete_all_temp_objects(context)
+        delete_all_temp_objects(context)
         #on recupere la liste des variations de props
         props = collect_part_variation(context,'fence')
-        print('la taille des props est ' + str(len(props)))
         vert_0 = None
+
         for i in range(len(self.list_construction_points)):
             vert_0 = self.list_construction_points[i].point
 
             try:
                 vert_1 = self.list_construction_points[i+1].point
-                edge_length = (vert_0-vert_1).length
-
-                direction_x = vert_1-vert_0
-
-                v0 = Vector(( 1.0,0,0 ))
-                #TODO get correct rotation angle !!!!!
-                rot = v0.rotation_difference( direction_x ).to_euler()
-
-                cube_nbr = int(round(edge_length //1))
-                pas = direction_x/cube_nbr
-                for i in range(0,cube_nbr):
-                    index = i % len(props)
-                    to_dupli_name = props[index].name
-                    dupli = duplicate_props(context,to_dupli_name)
-                    dupli.rotation_euler = rot
-                    dupli.location = vert_0 + i*pas
             except:
                 break
+            edge_length = (vert_0-vert_1).length
+
+            direction_x = vert_1-vert_0
+
+            v0 = Vector(( 1.0,0,0 ))
+            #TODO get correct rotation angle !!!!!
+            rot = v0.rotation_difference( direction_x ).to_euler()
+
+            props_order = get_props_order(context,edge_length,props)
+            curent_distance = 0.0
+            for index,value in enumerate(props_order):
+                to_dupli_name = props[value[0]].name
+                dupli = duplicate_props(context,to_dupli_name)
+                dupli.rotation_euler = rot
+                dupli.location = vert_0 + direction_x.normalized()*curent_distance
+                curent_distance += props[value[0]].dimensions[0]
 
 
     def execute(self, context):
@@ -496,7 +503,7 @@ class ModalDrawLineOperator(bpy.types.Operator):
             self.mouse_path = coord_mouse
 
             # get the ray from the viewport and mouse
-            best_hit,best_obj,best_normal,best_face_index = self.get_ray_cast_result(context,coord_mouse)
+            best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse)
 
             self.surface_found = False
             if best_hit is not None:
@@ -505,12 +512,11 @@ class ModalDrawLineOperator(bpy.types.Operator):
                 self.surface_hit = best_hit
 
 
-
         elif event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
 
                 coord_mouse = Vector((event.mouse_region_x, event.mouse_region_y))
-                best_hit,best_obj,best_normal,best_face_index = self.get_ray_cast_result(context,coord_mouse)
+                best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse)
 
                 new_point = None
                 if best_obj is not None:
@@ -540,6 +546,10 @@ class ModalDrawLineOperator(bpy.types.Operator):
                 self.update_mouse_action(context)
             elif event.value == 'RELEASE':
                 pass
+
+        elif event.type == 'WHEELUPMOUSE':
+            context.scene.builder_editor.seed +=  1
+            self.update_mouse_action(context)
 
         elif event.type in {'RET'}:
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
