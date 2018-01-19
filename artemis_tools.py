@@ -112,7 +112,7 @@ def get_faces_with_normal(pNormal, pTolerance):
 def draw_callback_px(self, context):
     region = context.region
     rv3d = context.space_data.region_3d
-    # print("mouse points", len(self.mouse_path))
+
 
     # Draw Points
     bgl.glEnable(bgl.GL_BLEND)
@@ -251,16 +251,27 @@ def orient_object_to_normal(context,pNormVect,pObject):
     if ray[0]:
         pObject.alignAxisToVect(ray[2], 2, 1) # Align the object to the hit normal of the ray
 
-def get_props_order(context,pEdgeLength,pPropsCollection):
+def get_props_order(context,p_edge_length,p_props_collection):
     props_order = []
     reach_end = False
     i = 0
-    cur_length = 0.0
-    while cur_length < pEdgeLength and not reach_end:
-        index = i % len(pPropsCollection)
+    cur_len = 0.0
+    while cur_len < p_edge_length and not reach_end:
+        index = i % len(p_props_collection)
         props_order.append((index,1.0))
-        cur_length += pPropsCollection[index].dimensions[0]
+        cur_len += p_props_collection[index].dimensions[0]
         i +=1
+
+    overflow = cur_len - p_edge_length
+    #on scale le dernier element
+    elem_size = p_props_collection[props_order[-1][0]].dimensions[0]
+
+    scale_factor = (elem_size-overflow)/elem_size
+
+    print("overflow " + str(overflow))
+    print("scale factor " + str(scale_factor))
+
+    props_order[-1][1] = scale_factor
 
     random.seed(context.scene.builder_editor.seed)
     random.shuffle(props_order)
