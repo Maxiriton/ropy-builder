@@ -109,7 +109,28 @@ def get_faces_with_normal(pNormal, pTolerance):
     #TODO
     return []
 
-def draw_callback_px(self, context):
+
+def draw_callback_brush_px(self, context):
+    region = context.region
+    rv3d = context.space_data.region_3d
+
+    if self.surface_found: #if there is a surface under mouse cursor
+        bgl.glEnable(bgl.GL_BLEND)
+        bgl.glColor4f(1.0, 1.0, 0.0, 1.0)
+        bgl.glLineWidth(1)
+        bgl.glEnable(bgl.GL_LINE)
+        bgl.glBegin(bgl.GL_LINE_STRIP)
+        bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
+
+        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
+            region, rv3d, self.surface_normal)
+        bgl.glVertex2f(loc_1[0], loc_1[1])
+        bgl.glEnd()
+        bgl.glDisable(bgl.GL_LINE_STRIP)
+        bgl.glDisable(bgl.GL_BLEND)
+
+
+def draw_callback_line_px(self, context):
     region = context.region
     rv3d = context.space_data.region_3d
 
@@ -198,10 +219,12 @@ def draw_callback_px(self, context):
     # bgl.glDisable(bgl.GL_BLEND)
     # bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
 
+
 def get_tuple(iterable, length, format=tuple):
     it = iter(iterable)
     while True:
         yield format(chain((next(it),), islice(it, length - 1)))
+
 
 def collect_part_variation(context,pPropName):
     result = []
@@ -215,6 +238,7 @@ def collect_part_variation(context,pPropName):
 
     return result
 
+
 def duplicate_props(context,pPropName):
     obj_to_dupli = context.scene.objects[pPropName]
     dupli_data = obj_to_dupli.data.copy()
@@ -223,10 +247,12 @@ def duplicate_props(context,pPropName):
 
     return duplicata
 
+
 ###### ______Functions Definition______ ######
 
 def unwrap_mesh_to_box(context,pScale):
     bpy.ops.uv.cube_project()
+
 
 def generate_room(context,height):
     bpy.ops.mesh.select_all(action='SELECT')
@@ -251,6 +277,7 @@ def orient_object_to_normal(context,pNormVect,pObject):
     if ray[0]:
         pObject.alignAxisToVect(ray[2], 2, 1) # Align the object to the hit normal of the ray
 
+
 def get_props_order(context,p_edge_length,p_props_collection):
     props_order = []
     reach_end = False
@@ -268,10 +295,8 @@ def get_props_order(context,p_edge_length,p_props_collection):
 
     scale_factor = (elem_size-overflow)/elem_size
 
-    print("overflow " + str(overflow))
-    print("scale factor " + str(scale_factor))
-
-    props_order[-1][1] = scale_factor
+    (index,value) = props_order[-1]
+    props_order[-1] = (index,scale_factor)
 
     random.seed(context.scene.builder_editor.seed)
     random.shuffle(props_order)
@@ -374,8 +399,9 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
         row.prop(scene.builder_editor, "seed")
 
         row = layout.row()
-        row.operator("view3d.modal_operator", text="Draw Props", icon='IPO_ELASTIC')
-
+        row.operator("view3d.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
+        row = layout.row()
+        row.operator("view3d.modal_draw_brush", text="Draw Props with Brush", icon='BRUSH_DATA')
 
 
 class VIEW3D_PT_BuilderEditor_edit_Panel(bpy.types.Panel):
@@ -425,9 +451,70 @@ class Generate_room_operator(bpy.types.Operator):
         generate_room(context,self.height)
         return {'FINISHED'}
 
+class ModalDrawBrushOperator(bpy.types.Operator):
+    """Draw props on scene"""
+    bl_idname = "view3d.modal_draw_brush"
+    bl_label = "Draw Props on surfaces"
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def modal(self,context,event):
+        context.area.tag_redraw()
+        region = context.region
+        rv3d = context.space_data.region_3d
+
+        if event.type == 'MOUSEMOVE':
+            print('coucou')
+            coord_mouse = Vector((event.mouse_region_x, event.mouse_region_y))
+            self.mouse_path = coord_mouse
+
+            # get the ray from the viewport and mouse
+            best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse)
+
+            self.surface_found = False
+            if best_hit is not None:
+                self.surface_found = True
+                self.surface_normal = best_hit + best_normal
+                self.surface_hit = best_hit
+
+        elif event.type in {'ESC'}:
+            bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
+            self.depth_location = Vector((0.0, 0.0, 0.0))
+            return {'CANCELLED'}
+        return {'PASS_THROUGH'}
+
+
+
+    def invoke(self, context, event):
+        if context.area.type == 'VIEW_3D':
+            # the arguments we pass the the callback
+            args = (self, context)
+            # Add the region OpenGL drawing callback
+            # draw in view space with 'POST_VIEW' and 'PRE_VIEW'
+            self._handle = bpy.types.SpaceView3D.draw_handler_add(
+                draw_callback_line_px, args, 'WINDOW', 'POST_PIXEL')
+
+
+            self.mouse_path = []
+            self.list_construction_points = []
+            self.depth_location = Vector((0.0, 0.0, 0.0))
+            self.surface_found = False
+            context.window_manager.modal_handler_add(self)
+
+            return {'RUNNING_MODAL'}
+
+        else:
+            self.report({'WARNING'}, "View3D not found, cannot run operator")
+            return {'CANCELLED'}
+
+
+
+
 class ModalDrawLineOperator(bpy.types.Operator):
     """Draw a line with the mouse"""
-    bl_idname = "view3d.modal_operator"
+    bl_idname = "view3d.modal_draw_line"
     bl_label = "Simple Modal View3D Operator"
 
 
@@ -457,10 +544,10 @@ class ModalDrawLineOperator(bpy.types.Operator):
             for index,value in enumerate(props_order):
                 to_dupli_name = props[value[0]].name
                 dupli = duplicate_props(context,to_dupli_name)
+                dupli.scale[0] = value[1]
                 dupli.rotation_euler = rot
                 dupli.location = vert_0 + direction_x.normalized()*curent_distance
-                curent_distance += props[value[0]].dimensions[0]
-
+                curent_distance += props[value[0]].dimensions[0]*value[1]
 
     def execute(self, context):
         # Create a mesh object to store polygon line
@@ -507,7 +594,6 @@ class ModalDrawLineOperator(bpy.types.Operator):
         context.area.tag_redraw()
         region = context.region
         rv3d = context.space_data.region_3d
-
 
         if event.type == 'MOUSEMOVE':
             coord_mouse = Vector((event.mouse_region_x, event.mouse_region_y))
@@ -562,6 +648,10 @@ class ModalDrawLineOperator(bpy.types.Operator):
             context.scene.builder_editor.seed +=  1
             self.update_mouse_action(context)
 
+        elif event.type == 'WHEELDOWNMOUSE':
+            context.scene.builder_editor.seed =  1
+            self.update_mouse_action(context)
+
         elif event.type in {'RET'}:
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             self.execute(context)
@@ -583,7 +673,7 @@ class ModalDrawLineOperator(bpy.types.Operator):
             # Add the region OpenGL drawing callback
             # draw in view space with 'POST_VIEW' and 'PRE_VIEW'
             self._handle = bpy.types.SpaceView3D.draw_handler_add(
-                draw_callback_px, args, 'WINDOW', 'POST_PIXEL')
+                draw_callback_line_px, args, 'WINDOW', 'POST_PIXEL')
 
 
             self.mouse_path = []
@@ -600,8 +690,8 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
 def register():
     bpy.utils.register_class(Builder_Properties)
-    bpy.utils.register_class(ModalDrawLineOperator
-    )
+    bpy.utils.register_class(ModalDrawLineOperator)
+    bpy.utils.register_class(ModalDrawBrushOperator)
     bpy.utils.register_class(Generate_room_operator)
 
     bpy.utils.register_class(VIEW3D_PT_BuilderEditorPanel)
@@ -615,6 +705,8 @@ def unregister():
     bpy.utils.unregister_class(Builder_Properties)
     bpy.utils.unregister_class(TextSearchOperator)
     bpy.utils.unregister_class(ModalDrawOperator)
+    bpy.utils.unregister_class(ModalDrawBrushOperator)
+
 
     bpy.utils.unregister_class(VIEW3D_PT_BuilderEditorPanel)
     bpy.utils.unregister_class(VIEW3D_PT_BuilderEditor_edit_Panel)
