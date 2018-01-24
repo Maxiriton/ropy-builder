@@ -59,6 +59,12 @@ class Builder_Properties(bpy.types.PropertyGroup):
         default=23,
         min=1)
 
+    brush_distance = bpy.props.FloatProperty(
+        name="Distance",
+        description="Distance between two objects",
+        default=1,
+        min=0.01)
+
     spc_SearchName = bpy.props.StringProperty(
         name="Name to match",
         description="Find all objects with this name",
@@ -247,6 +253,14 @@ def duplicate_props(context,pPropName):
 
     return duplicata
 
+def add_empty_props(context,prop_name):
+    o = bpy.data.objects.new('p_{}'.format(prop_name), None )
+    context.scene.objects.link( o )
+    o.empty_draw_size = 1
+    o.empty_draw_type = 'PLAIN_AXES'
+
+    return o
+
 
 ###### ______Functions Definition______ ######
 
@@ -398,8 +412,11 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
         row = layout.row()
         row.prop(scene.builder_editor, "seed")
 
+
         row = layout.row()
         row.operator("view3d.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
+        row = layout.row()
+        row.prop(scene.builder_editor, "brush_distance")
         row = layout.row()
         row.operator("view3d.modal_draw_brush", text="Draw Props with Brush", icon='BRUSH_DATA')
 
@@ -466,7 +483,6 @@ class ModalDrawBrushOperator(bpy.types.Operator):
         rv3d = context.space_data.region_3d
 
         if event.type == 'MOUSEMOVE':
-            print('coucou')
             coord_mouse = Vector((event.mouse_region_x, event.mouse_region_y))
             self.mouse_path = coord_mouse
 
@@ -479,6 +495,39 @@ class ModalDrawBrushOperator(bpy.types.Operator):
                 self.surface_normal = best_hit + best_normal
                 self.surface_hit = best_hit
 
+                if self.lmb: #if the left button is pressed
+                    self.delta += (self.previous_impact - self.surface_hit).length
+
+                    #add a object if the distance between the previous one is too short
+                    if self.delta > context.scene.builder_editor.brush_distance:
+                        e = add_empty_props(context,'Rocks')
+                        e.location = best_hit
+                        self.delta = 0.0
+
+                    print(str(self.delta))
+                    self.previous_impact = self.surface_hit
+
+
+
+        elif event.type == 'LEFTMOUSE':
+            if event.value == 'PRESS':
+                self.lmb = True
+                coord_mouse = Vector((event.mouse_region_x, event.mouse_region_y))
+                # get the ray from the viewport and mouse
+                best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse)
+                if best_hit is not None:
+                    self.previous_impact = best_hit
+                    self.delta = 0
+                    e = add_empty_props(context,'Emile')
+                    e.location = best_hit
+                    #TODO Get correct rotation !!!!
+
+            elif event.value == 'RELEASE':
+                self.lmb = False
+        elif event.type  in {'S'} and event.value == 'PRESS':
+            context.scene.builder_editor.brush_distance +=  0.1
+        elif event.type in {'R'} and event.value == 'PRESS':
+            context.scene.builder_editor.brush_distance +=  -0.1
         elif event.type in {'ESC'}:
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             self.depth_location = Vector((0.0, 0.0, 0.0))
@@ -488,26 +537,26 @@ class ModalDrawBrushOperator(bpy.types.Operator):
 
 
     def invoke(self, context, event):
-        if context.area.type == 'VIEW_3D':
-            # the arguments we pass the the callback
-            args = (self, context)
-            # Add the region OpenGL drawing callback
-            # draw in view space with 'POST_VIEW' and 'PRE_VIEW'
-            self._handle = bpy.types.SpaceView3D.draw_handler_add(
-                draw_callback_line_px, args, 'WINDOW', 'POST_PIXEL')
-
-
-            self.mouse_path = []
-            self.list_construction_points = []
-            self.depth_location = Vector((0.0, 0.0, 0.0))
-            self.surface_found = False
-            context.window_manager.modal_handler_add(self)
-
-            return {'RUNNING_MODAL'}
-
-        else:
+        if context.area.type != 'VIEW_3D':
             self.report({'WARNING'}, "View3D not found, cannot run operator")
             return {'CANCELLED'}
+
+
+        args = (self, context)
+        self._handle = bpy.types.SpaceView3D.draw_handler_add(
+            draw_callback_line_px, args, 'WINDOW', 'POST_PIXEL')
+
+
+        self.mouse_path = []
+        self.list_construction_points = []
+        self.depth_location = Vector((0.0, 0.0, 0.0))
+        self.surface_found = False
+        self.lmb = False
+
+
+
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
 
 
 
@@ -644,12 +693,12 @@ class ModalDrawLineOperator(bpy.types.Operator):
             elif event.value == 'RELEASE':
                 pass
 
-        elif event.type == 'WHEELUPMOUSE':
+        elif event.type  in {'S'} and event.value == 'PRESS':
             context.scene.builder_editor.seed +=  1
             self.update_mouse_action(context)
 
-        elif event.type == 'WHEELDOWNMOUSE':
-            context.scene.builder_editor.seed =  1
+        elif event.type in {'R'} and event.value == 'PRESS':
+            context.scene.builder_editor.seed +=  -1
             self.update_mouse_action(context)
 
         elif event.type in {'RET'}:
