@@ -25,6 +25,17 @@ import bpy_extras
 import re
 from mathutils import Vector, Matrix
 
+
+###### ______Utils Class Definition______ ######
+
+class construction_point():
+    def __init__(self, point_coord, point_normal):
+        self.point = point_coord
+        if point_normal is not None:
+            self.normal = point_normal
+        else:
+            self.normal = Vector((0.0,0.0,1.0))
+
 ###### ______Utils Functions Definition______ ######
 
 def area_of_type(type_name):
@@ -237,7 +248,7 @@ def get_props_order(context,p_edge_length,p_props_collection):
     (index,value) = props_order[-1]
     props_order[-1] = (index,scale_factor)
 
-    random.seed(context.scene.builder_editor.seed)
+    random.seed(context.scene.build_props.seed)
     random.shuffle(props_order)
 
     return props_order

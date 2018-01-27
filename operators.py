@@ -18,7 +18,7 @@
 
 import bpy
 
-from .operators import *
+from .functions import *
 
 class Generate_room_operator(bpy.types.Operator):
     """Generate walls and roof from selection"""
@@ -46,6 +46,7 @@ class Generate_room_operator(bpy.types.Operator):
     def execute(self, context):
         generate_room(context,self.height)
         return {'FINISHED'}
+
 
 class ModalDrawBrushOperator(bpy.types.Operator):
     """Draw props on scene"""
@@ -78,7 +79,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
                     self.delta += (self.previous_impact - self.surface_hit).length
 
                     #add a object if the distance between the previous one is too short
-                    if self.delta > context.scene.builder_editor.brush_distance:
+                    if self.delta > context.scene.build_props.brush_distance:
                         e = add_empty_props(context,'Rocks')
                         e.location = best_hit
                         self.delta = 0.0
@@ -104,9 +105,9 @@ class ModalDrawBrushOperator(bpy.types.Operator):
             elif event.value == 'RELEASE':
                 self.lmb = False
         elif event.type  in {'S'} and event.value == 'PRESS':
-            context.scene.builder_editor.brush_distance +=  0.1
+            context.scene.build_props.brush_distance +=  0.1
         elif event.type in {'R'} and event.value == 'PRESS':
-            context.scene.builder_editor.brush_distance +=  -0.1
+            context.scene.build_props.brush_distance +=  -0.1
         elif event.type in {'ESC'}:
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             self.depth_location = Vector((0.0, 0.0, 0.0))
@@ -136,8 +137,6 @@ class ModalDrawBrushOperator(bpy.types.Operator):
 
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
-
-
 
 
 class ModalDrawLineOperator(bpy.types.Operator):

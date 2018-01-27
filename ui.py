@@ -18,6 +18,8 @@
 
 import bpy
 
+from .operators import *
+
 class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
     """UI for level editor"""
     bl_label = "Level Editor"
@@ -32,13 +34,13 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
         scene = context.scene
 
         row = layout.row()
-        row.prop(scene.builder_editor, "seed")
+        row.prop(scene.build_props, "seed")
 
 
         row = layout.row()
         row.operator("view3d.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
         row = layout.row()
-        row.prop(scene.builder_editor, "brush_distance")
+        row.prop(scene.build_props, "brush_distance")
         row = layout.row()
         row.operator("view3d.modal_draw_brush", text="Draw Props with Brush", icon='BRUSH_DATA')
 
