@@ -38,6 +38,14 @@ class construction_point():
 
 ###### ______Utils Functions Definition______ ######
 
+def get_group_items(self, context):
+    l = [];
+    with open('populate.txt', 'r') as f:
+        for line in f:
+            s = line.split(',')
+            l.append((s[0], s[1], s[1]))
+    return l;
+
 def area_of_type(type_name):
     for area in bpy.context.screen.areas:
         if area.type == type_name:
@@ -52,120 +60,20 @@ def get_faces_with_normal(pNormal, pTolerance):
     return []
 
 
-def draw_callback_brush_px(self, context):
-    region = context.region
-    rv3d = context.space_data.region_3d
-
-    if self.surface_found: #if there is a surface under mouse cursor
-        bgl.glEnable(bgl.GL_BLEND)
-        bgl.glColor4f(1.0, 1.0, 0.0, 1.0)
-        bgl.glLineWidth(1)
-        bgl.glEnable(bgl.GL_LINE)
-        bgl.glBegin(bgl.GL_LINE_STRIP)
-        bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
-
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
-            region, rv3d, self.surface_normal)
-        bgl.glVertex2f(loc_1[0], loc_1[1])
-        bgl.glEnd()
-        bgl.glDisable(bgl.GL_LINE_STRIP)
-        bgl.glDisable(bgl.GL_BLEND)
-
-
-def draw_callback_line_px(self, context):
-    region = context.region
-    rv3d = context.space_data.region_3d
-
-
-    # Draw Points
-    bgl.glEnable(bgl.GL_BLEND)
-    bgl.glColor4f(0.0, 0.8, 0.0, 1.0)
-    bgl.glPointSize(5.0)
-    bgl.glBegin(bgl.GL_POINTS)
-    bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
-
-    for x in self.list_construction_points:
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
-            region, rv3d, x.point)
-        bgl.glVertex2f(loc_1[0], loc_1[1])
-
-    bgl.glEnd()
-    bgl.glDisable(bgl.GL_BLEND)
-
-    # Draw Normal point
-    bgl.glEnable(bgl.GL_BLEND)
-    bgl.glColor4f(0.3, 0.8, 0.8, 1.0)
-    bgl.glPointSize(2.0)
-    bgl.glBegin(bgl.GL_POINTS)
-
-    for x in self.list_construction_points:
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
-            region, rv3d, x.point+x.normal)
-        bgl.glVertex2f(loc_1[0], loc_1[1])
-
-    bgl.glEnd()
-    bgl.glDisable(bgl.GL_BLEND)
-
-    # 50% alpha, 2 pixel width line
-    bgl.glEnable(bgl.GL_BLEND)
-    bgl.glColor4f(1.0, 0.0, 0.0, 1.0)
-    bgl.glLineStipple(2, 0x9999)
-    bgl.glEnable(bgl.GL_LINE)
-    bgl.glBegin(bgl.GL_LINE_STRIP)
-
-    for x in self.list_construction_points:
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
-            region, rv3d, x.point)
-        bgl.glVertex2f(loc_1[0], loc_1[1])
-    bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
-    bgl.glEnd()
-    bgl.glDisable(bgl.GL_LINE_STRIP)
-    bgl.glDisable(bgl.GL_BLEND)
-
-
-    bgl.glEnable(bgl.GL_BLEND)
-    bgl.glColor4f(1.0, 1.0, 0.0, 1.0)
-    bgl.glLineWidth(1)
-    for x in self.list_construction_points:
-        bgl.glEnable(bgl.GL_LINE)
-        bgl.glBegin(bgl.GL_LINE_STRIP)
-
-        root = bpy_extras.view3d_utils.location_3d_to_region_2d(
-            region, rv3d, x.point)
-        bgl.glVertex2f(root[0], root[1])
-        tip = bpy_extras.view3d_utils.location_3d_to_region_2d(
-            region, rv3d, x.point+x.normal)
-        bgl.glVertex2f(tip[0], tip[1])
-        bgl.glEnd()
-        bgl.glDisable(bgl.GL_LINE_STRIP)
-    bgl.glDisable(bgl.GL_BLEND)
-
-    if self.surface_found: #if there is a surface under mouse cursor
-        bgl.glEnable(bgl.GL_BLEND)
-        bgl.glColor4f(1.0, 1.0, 0.0, 1.0)
-        bgl.glLineWidth(1)
-        bgl.glEnable(bgl.GL_LINE)
-        bgl.glBegin(bgl.GL_LINE_STRIP)
-        bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
-
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
-            region, rv3d, self.surface_normal)
-        bgl.glVertex2f(loc_1[0], loc_1[1])
-        bgl.glEnd()
-        bgl.glDisable(bgl.GL_LINE_STRIP)
-        bgl.glDisable(bgl.GL_BLEND)
-
-
-    # restore opengl defaults
-    # bgl.glLineWidth(1)
-    # bgl.glDisable(bgl.GL_BLEND)
-    # bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
-
-
 def get_tuple(iterable, length, format=tuple):
     it = iter(iterable)
     while True:
         yield format(chain((next(it),), islice(it, length - 1)))
+
+
+def collect_groups_variation_distant_file(context):
+    filepath = context.user_preferences.addons[__package__].preferences.libPath
+
+    with bpy.data.libraries.load(filepath, link=False) as (data_src, data_dst):
+        print("coucou" + str(len(data_src.groups)))
+        for group in data_src.groups:
+            print(group)
+
 
 
 def collect_part_variation(context,pPropName):
@@ -189,13 +97,49 @@ def duplicate_props(context,pPropName):
 
     return duplicata
 
-def add_empty_props(context,prop_name):
-    o = bpy.data.objects.new('p_{}'.format(prop_name), None )
-    context.scene.objects.link( o )
+def get_prop_group_instance(context, pGroupName):
+    """Append a group from the library or just return the instance if it is already in scene"""
+
+    try:
+        group = bpy.data.groups[pGroupName]
+        instance = bpy.data.objects.new('g_'+pGroupName, None)
+        instance.dupli_type = 'GROUP'
+        instance.dupli_group = group
+        instance.empty_draw_size = 1
+        instance.empty_draw_type = 'PLAIN_AXES'
+        context.scene.objects.link(instance)
+
+        return instance
+    except:
+        filepath = context.user_preferences.addons[__package__].preferences.libPath
+        link = False
+
+        # append all groups from the .blend file
+        with bpy.data.libraries.load(filepath, link=link) as (data_src, data_dst):
+            data_dst.groups = [pGroupName]
+
+        for group in data_dst.groups:
+            instance = bpy.data.objects.new('g_'+group.name, None)
+            instance.dupli_type = 'GROUP'
+            instance.dupli_group = group
+            context.scene.objects.link(instance)
+
+            return instance
+
+def add_prop_instance(context,propName,variation):
+    o = bpy.data.objects.new('i_{}'.format(propName), None )
     o.empty_draw_size = 1
     o.empty_draw_type = 'PLAIN_AXES'
+    context.scene.objects.link(o)
+
+    group_name = 'p_'+propName+'_'+str(int(variation))
+    instance = get_prop_group_instance(context,group_name)
+
+    instance.parent = o
 
     return o
+
+
 
 
 ###### ______Functions Definition______ ######
@@ -278,7 +222,7 @@ def visible_objects_and_duplis(context):
             yield (obj, obj.matrix_world.copy())
 
         if obj.dupli_type != 'NONE':
-            obj.dupli_list_create(scene)
+            obj.dupli_list_create(context.scene)
             for dob in obj.dupli_list:
                 obj_dupli = dob.object
                 if obj_dupli.type == 'MESH':

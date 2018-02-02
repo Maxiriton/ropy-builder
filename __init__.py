@@ -48,21 +48,10 @@ class RopyBuilderPreferences(bpy.types.AddonPreferences):
             name="Props File Path",
             subtype='FILE_PATH',
             )
-    number = bpy.props.IntProperty(
-            name="Example Number",
-            default=4,
-            )
-    boolean = bpy.props.BoolProperty(
-            name="Example Boolean",
-            default=False,
-            )
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text="This is a preferences view for our addon")
         layout.prop(self, "libPath")
-        layout.prop(self, "number")
-        layout.prop(self, "boolean")
 
 class RopyBuilderProperties(bpy.types.PropertyGroup):
     """"Store properties in the active scene"""
@@ -79,40 +68,7 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         default=1,
         min=0.01)
 
-    spc_SearchName = bpy.props.StringProperty(
-        name="Name to match",
-        description="Find all objects with this name",
-        default="")
-
-    spc_UseActiveObject = bpy.props.BoolProperty(
-        name="Use active object",
-        description="Use active object's volume as reference volume for objects detection",
-        default=True)
-
-    spc_SmallObjTolerance = bpy.props.IntProperty(
-        name="volume tolerance",
-        description="percentage of volume tolerance used for object detection",
-        default= 20,
-        min=0,
-        max=100)
-
-    spc_GroupName = bpy.props.StringProperty(
-        name="Group Target",
-        description="Group Target to select",
-        default="")
-
-    spc_ConfPath = bpy.props.StringProperty(
-      name = "File Path",
-      default = "",
-      description = "Define the root path of the project",
-      subtype = 'FILE_PATH')
-
-    spc_SelectionVolume = bpy.props.FloatVectorProperty(
-        name ="Volume Dimension",
-        unit = 'AREA',
-        precision = 3,
-        default=(0.2, 0.2, 0.2))
-
+    props_variation = bpy.props.EnumProperty(items = get_groups_item)
 
 def register():
     bpy.utils.register_module(__name__)

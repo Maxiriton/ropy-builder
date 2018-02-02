@@ -19,6 +19,7 @@
 import bpy
 
 from .functions import *
+from .ui import draw_callback_line_px, draw_callback_brush_px
 
 class Generate_room_operator(bpy.types.Operator):
     """Generate walls and roof from selection"""
@@ -46,6 +47,20 @@ class Generate_room_operator(bpy.types.Operator):
     def execute(self, context):
         generate_room(context,self.height)
         return {'FINISHED'}
+
+class collect_part_variation_operator(bpy.types.Operator):
+    """Collect props groups from library file"""
+    bl_idname = "ropy.collect_distant_groups"
+    bl_label = "Collect Props Variation"
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def execute(self, context):
+        collect_groups_variation_distant_file(context)
+        return {'FINISHED'}
+
 
 
 class ModalDrawBrushOperator(bpy.types.Operator):
@@ -80,7 +95,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
 
                     #add a object if the distance between the previous one is too short
                     if self.delta > context.scene.build_props.brush_distance:
-                        e = add_empty_props(context,'Rocks')
+                        e = add_prop_instance(context,'rock')
                         e.location = best_hit
                         self.delta = 0.0
 
@@ -98,7 +113,9 @@ class ModalDrawBrushOperator(bpy.types.Operator):
                 if best_hit is not None:
                     self.previous_impact = best_hit
                     self.delta = 0
-                    e = add_empty_props(context,'Emile')
+
+                    e = add_prop_instance(context,'rock')
+                    # e = add_empty_props(context,'Emile')
                     e.location = best_hit
                     #TODO Get correct rotation !!!!
 
