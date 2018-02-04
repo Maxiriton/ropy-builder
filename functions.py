@@ -38,13 +38,13 @@ class construction_point():
 
 ###### ______Utils Functions Definition______ ######
 
-def get_group_items(self, context):
-    l = [];
-    with open('populate.txt', 'r') as f:
-        for line in f:
-            s = line.split(',')
-            l.append((s[0], s[1], s[1]))
-    return l;
+def get_groups_items(self,context):
+    collections = collect_groups_variation_distant_file(context)
+    result = []
+    for index,key in enumerate(collections.keys()):
+        result.append((key,key,key))
+    return result
+
 
 def area_of_type(type_name):
     for area in bpy.context.screen.areas:
@@ -69,33 +69,17 @@ def get_tuple(iterable, length, format=tuple):
 def collect_groups_variation_distant_file(context):
     filepath = context.user_preferences.addons[__package__].preferences.libPath
 
+    collections = {}
     with bpy.data.libraries.load(filepath, link=False) as (data_src, data_dst):
-        print("coucou" + str(len(data_src.groups)))
-        for group in data_src.groups:
-            print(group)
+        for GroupName in data_src.groups:
+            group_parsed= GroupName.split('_')
+            prop_col_name =  group_parsed[1]
+            if prop_col_name in collections:
+                collections[prop_col_name].append(GroupName)
+            else:
+                collections[prop_col_name] = [GroupName]
 
-
-
-def collect_part_variation(context,pPropName):
-    result = []
-    name = "prop_"+pPropName+"_var"
-    p = re.compile(name+'(_\d+)?$', re.IGNORECASE)
-    for obj in context.scene.objects:
-        match = p.match(obj.name)
-
-        if match is not None:
-            result.append(obj)
-
-    return result
-
-
-def duplicate_props(context,pPropName):
-    obj_to_dupli = context.scene.objects[pPropName]
-    dupli_data = obj_to_dupli.data.copy()
-    duplicata = bpy.data.objects.new("dupli_"+obj_to_dupli.name, dupli_data)
-    context.scene.objects.link(duplicata)
-
-    return duplicata
+    return collections
 
 def get_prop_group_instance(context, pGroupName):
     """Append a group from the library or just return the instance if it is already in scene"""
@@ -108,7 +92,7 @@ def get_prop_group_instance(context, pGroupName):
         instance.empty_draw_size = 1
         instance.empty_draw_type = 'PLAIN_AXES'
         context.scene.objects.link(instance)
-
+        instance.hide_select = True
         return instance
     except:
         filepath = context.user_preferences.addons[__package__].preferences.libPath
@@ -123,7 +107,7 @@ def get_prop_group_instance(context, pGroupName):
             instance.dupli_type = 'GROUP'
             instance.dupli_group = group
             context.scene.objects.link(instance)
-
+            instance.hide_select = True
             return instance
 
 def add_prop_instance(context,propName,variation):
@@ -214,6 +198,15 @@ def obj_ray_cast(obj, matrix,ray_origin,ray_target):
     else:
         return None, None, None
 
+def visibles_objects_without_builder_props(context):
+    """Loop over (object, matrix) pairs (mesh only)"""
+    for obj in context.visible_objects:
+        if obj.type == 'MESH':
+            if obj.parent is not None:
+                print(obj.parent.name)
+            yield (obj, obj.matrix_world.copy())
+
+
 def visible_objects_and_duplis(context):
     """Loop over (object, matrix) pairs (mesh only)"""
 
@@ -230,7 +223,7 @@ def visible_objects_and_duplis(context):
 
         obj.dupli_list_clear()
 
-def get_ray_cast_result(context,coord_mouse):
+def get_ray_cast_result(context,coord_mouse,use_all_objects=False):
     region = context.region
     rv3d = context.space_data.region_3d
     # get the ray from the viewport and mouse
@@ -246,7 +239,14 @@ def get_ray_cast_result(context,coord_mouse):
     best_normal = None
     best_face_index = None
 
-    for obj, matrix in visible_objects_and_duplis(context):
+
+    obj_list = None
+    if use_all_objects:
+        obj_list = visible_objects_and_duplis(context)
+    else:
+        obj_list = visibles_objects_without_builder_props(context)
+
+    for obj, matrix in obj_list:
         if obj.type != 'MESH':
             continue
         hit, normal, face_index = obj_ray_cast(obj, matrix,ray_origin,ray_target)
@@ -263,6 +263,12 @@ def get_ray_cast_result(context,coord_mouse):
                 best_face_index = face_index
 
     return best_hit,best_obj,best_normal,best_face_index
+
+def remove_orphan_props_func(context):
+    for obj in context.scene.objects:
+        if obj.type == 'EMPTY' and obj.name.startswith('g_'):
+            bpy.data.objects.remove(obj,True)
+
 
 def delete_all_temp_objects(context):
     #TODO remplacer cette merde par une liste d'objet que l'on purge

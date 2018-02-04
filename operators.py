@@ -1,4 +1,4 @@
-# BEGIN GPL LICENSE BLOCK #####
+    # BEGIN GPL LICENSE BLOCK #####
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -48,6 +48,20 @@ class Generate_room_operator(bpy.types.Operator):
         generate_room(context,self.height)
         return {'FINISHED'}
 
+
+class remove_orphan_props(bpy.types.Operator):
+    """Remove props that are not selectionnable and not instanced"""
+    bl_idname = "ropy.remove_orphan_props"
+    bl_label = "Remove empty props"
+
+    @classmethod
+    def poll(cls,context):
+        return context.mode == 'OBJECT'
+
+    def execute(self,context):
+        remove_orphan_props_func(context)
+        return {'FINISHED'}
+
 class collect_part_variation_operator(bpy.types.Operator):
     """Collect props groups from library file"""
     bl_idname = "ropy.collect_distant_groups"
@@ -82,7 +96,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
             self.mouse_path = coord_mouse
 
             # get the ray from the viewport and mouse
-            best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse)
+            best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse,context.scene.build_props.paint_on_all_objects)
 
             self.surface_found = False
             if best_hit is not None:
@@ -95,11 +109,13 @@ class ModalDrawBrushOperator(bpy.types.Operator):
 
                     #add a object if the distance between the previous one is too short
                     if self.delta > context.scene.build_props.brush_distance:
-                        e = add_prop_instance(context,'rock')
+                        e = add_prop_instance(context,'rock',1)
                         e.location = best_hit
+                        if context.scene.build_props.paint_random_scale:
+                            factor = random.uniform(context.scene.build_props.paint_random_min_max[0], context.scene.build_props.paint_random_min_max[1])
+                            e.scale.xyz = (factor,factor,factor)
                         self.delta = 0.0
 
-                    print(str(self.delta))
                     self.previous_impact = self.surface_hit
 
 
@@ -114,9 +130,11 @@ class ModalDrawBrushOperator(bpy.types.Operator):
                     self.previous_impact = best_hit
                     self.delta = 0
 
-                    e = add_prop_instance(context,'rock')
-                    # e = add_empty_props(context,'Emile')
+                    e = add_prop_instance(context,'rock',1)
                     e.location = best_hit
+                    if context.scene.build_props.paint_random_scale:
+                        factor = random.uniform(context.scene.build_props.paint_random_min_max[0], context.scene.build_props.paint_random_min_max[1])
+                        e.scale.xyz = (factor,factor,factor)
                     #TODO Get correct rotation !!!!
 
             elif event.value == 'RELEASE':
@@ -289,11 +307,11 @@ class ModalDrawLineOperator(bpy.types.Operator):
                 pass
 
         elif event.type  in {'S'} and event.value == 'PRESS':
-            context.scene.builder_editor.seed +=  1
+            context.scene.build_props.seed +=  1
             self.update_mouse_action(context)
 
         elif event.type in {'R'} and event.value == 'PRESS':
-            context.scene.builder_editor.seed +=  -1
+            context.scene.build_props.seed +=  -1
             self.update_mouse_action(context)
 
         elif event.type in {'RET'}:

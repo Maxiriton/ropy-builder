@@ -38,6 +38,9 @@ else:
     from . import functions, operators, ui
 
 import bpy
+from .functions import get_groups_items
+
+
 
 class RopyBuilderPreferences(bpy.types.AddonPreferences):
     # this must match the addon name, use '__package__'
@@ -56,6 +59,8 @@ class RopyBuilderPreferences(bpy.types.AddonPreferences):
 class RopyBuilderProperties(bpy.types.PropertyGroup):
     """"Store properties in the active scene"""
 
+
+
     seed = bpy.props.IntProperty(
         name="Seed",
         description="Seed used for random generation",
@@ -68,7 +73,25 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         default=1,
         min=0.01)
 
-    props_variation = bpy.props.EnumProperty(items = get_groups_item)
+    paint_on_all_objects = bpy.props.BoolProperty(
+        name="Paint on all objects",
+        description="Use all objects to paint",
+        default=False)
+
+    paint_random_scale = bpy.props.BoolProperty(
+        name="Randomize scale",
+        description="randomize the scale of painted object",
+        default=True)
+
+    paint_random_min_max = bpy.props.FloatVectorProperty(
+        name = 'Scale limits',
+        description = 'Minimum and maximumscale',
+        default = (0.1,1.0),
+        size=2,
+        soft_min=0.05,
+        soft_max = 2.0)
+
+    props_variation = bpy.props.EnumProperty(items = get_groups_items)
 
 def register():
     bpy.utils.register_module(__name__)

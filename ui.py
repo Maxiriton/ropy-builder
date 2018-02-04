@@ -148,8 +148,10 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
         row.operator("ropy.collect_distant_groups", icon='LOAD_FACTORY')
 
         row = layout.row()
-        row.prop(scene.build_props, "seed")
+        row.prop(scene.build_props, "props_variation")
 
+        row = layout.row()
+        row.prop(scene.build_props, "seed")
 
         row = layout.row()
         row.operator("view3d.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
@@ -157,7 +159,18 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
         row = layout.row()
         row.prop(scene.build_props, "brush_distance")
         row = layout.row()
+        row.prop(scene.build_props, "paint_on_all_objects")
+        row = layout.row()
+        split = row.split(percentage=0.5)
+        col = split.column()
+        col.prop(scene.build_props, "paint_random_scale")
+        if scene.build_props.paint_random_scale:
+            col = split.column()
+            col.prop(scene.build_props, "paint_random_min_max")
+        row = layout.row()
         row.operator("view3d.modal_draw_brush", text="Draw Props with Brush", icon='BRUSH_DATA')
+        row = layout.row()
+        row.operator("ropy.remove_orphan_props", icon='CANCEL')
 
 
 
