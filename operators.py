@@ -109,7 +109,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
 
                     #add a object if the distance between the previous one is too short
                     if self.delta > context.scene.build_props.brush_distance:
-                        e = add_prop_instance(context,'rock',1)
+                        e = add_prop_instance(context,context.scene.build_props.props_variation,1)
                         e.location = best_hit
                         if context.scene.build_props.paint_random_scale:
                             factor = random.uniform(context.scene.build_props.paint_random_min_max[0], context.scene.build_props.paint_random_min_max[1])
@@ -181,9 +181,10 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
 
     def update_mouse_action(self,context):
-        delete_all_temp_objects(context)
+        delete_all_temp_objects(context,self.allobjs)
+        self.allobjs = []
         #on recupere la liste des variations de props
-        props = collect_part_variation(context,'fence')
+        props = get_collection_instance(context)
         vert_0 = None
 
         for i in range(len(self.list_construction_points)):
@@ -201,15 +202,16 @@ class ModalDrawLineOperator(bpy.types.Operator):
             #TODO get correct rotation angle !!!!!
             rot = v0.rotation_difference( direction_x ).to_euler()
 
+
             props_order = get_props_order(context,edge_length,props)
             curent_distance = 0.0
-            for index,value in enumerate(props_order):
-                to_dupli_name = props[value[0]].name
-                dupli = duplicate_props(context,to_dupli_name)
+            for value in props_order:
+                dupli = get_prop_group_instance(context,value[0])
                 dupli.scale[0] = value[1]
                 dupli.rotation_euler = rot
                 dupli.location = vert_0 + direction_x.normalized()*curent_distance
-                curent_distance += props[value[0]].dimensions[0]*value[1]
+                curent_distance += props[value[0]]*value[1]
+                self.allobjs.append(dupli.name)
 
     def execute(self, context):
         # Create a mesh object to store polygon line
@@ -342,6 +344,7 @@ class ModalDrawLineOperator(bpy.types.Operator):
             self.list_construction_points = []
             self.depth_location = Vector((0.0, 0.0, 0.0))
             self.surface_found = False
+            self.allobjs = []
             context.window_manager.modal_handler_add(self)
 
             return {'RUNNING_MODAL'}
