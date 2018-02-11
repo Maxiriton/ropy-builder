@@ -17,9 +17,11 @@
 # END GPL LICENSE BLOCK #####
 
 import bpy
+import mathutils
+from  math import radians
 
 from .functions import *
-from .ui import draw_callback_line_px, draw_callback_brush_px
+from .ui import draw_callback_line_px, draw_callback_brush_px,draw_callback_change_prop_px
 
 class Generate_room_operator(bpy.types.Operator):
     """Generate walls and roof from selection"""
@@ -76,6 +78,48 @@ class collect_part_variation_operator(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class ChangePropVariation(bpy.types.Operator):
+    """Change the variation of a prop"""
+    bl_idname = "ropy.change_prop_variation"
+    bl_label = " Change prop variation"
+
+    @classmethod
+    def poll(cls,context):
+        return context.mode == 'OBJECT'
+
+    def modal(self,context,event):
+        context.area.tag_redraw()
+        region = context.region
+        rv3d = context.space_data.region_3d
+
+        if event.type  in {'S'} and event.value == 'PRESS':
+            context.scene.build_props.brush_distance +=  0.1
+        elif event.type  in {'R'} and event.value == 'PRESS':
+            context.scene.build_props.brush_distance +=  0.1
+        elif event.type in {'ESC'}:
+            bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
+            return {'CANCELLED'}
+        return {'PASS_THROUGH'}
+
+
+    def invoke(self, context, event):
+        if context.area.type != 'VIEW_3D':
+            self.report({'WARNING'}, "View3D not found, cannot run operator")
+            return {'CANCELLED'}
+
+        args = (self, context)
+        self._handle = bpy.types.SpaceView3D.draw_handler_add(
+            draw_callback_change_prop_px, args, 'WINDOW', 'POST_PIXEL')
+
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+
+
+
+
+
+
 
 class ModalDrawBrushOperator(bpy.types.Operator):
     """Draw props on scene"""
@@ -85,6 +129,26 @@ class ModalDrawBrushOperator(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return context.mode == 'OBJECT'
+
+
+    def add_prop(self,context,location,rotation):
+        var = self.current_var % self.nb_var
+
+        e = add_prop_instance(context,context.scene.build_props.props_variation,var+1)
+        self.current_var += 1
+        e.location = location
+        if context.scene.build_props.paint_random_scale:
+            factor = random.uniform(context.scene.build_props.paint_random_min_max[0], context.scene.build_props.paint_random_min_max[1])
+            e.scale.xyz = (factor,factor,factor)
+
+        mat_rot = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
+
+        v0 = Vector(( 0.0,0,1.0 ))
+        direction_z = rotation
+        rot = v0.rotation_difference(direction_z)
+
+        e.rotation_euler = rot.to_euler()
+        self.temp_obj.append(e)
 
     def modal(self,context,event):
         context.area.tag_redraw()
@@ -109,11 +173,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
 
                     #add a object if the distance between the previous one is too short
                     if self.delta > context.scene.build_props.brush_distance:
-                        e = add_prop_instance(context,context.scene.build_props.props_variation,1)
-                        e.location = best_hit
-                        if context.scene.build_props.paint_random_scale:
-                            factor = random.uniform(context.scene.build_props.paint_random_min_max[0], context.scene.build_props.paint_random_min_max[1])
-                            e.scale.xyz = (factor,factor,factor)
+                        self.add_prop(context,best_hit,best_normal)
                         self.delta = 0.0
 
                     self.previous_impact = self.surface_hit
@@ -130,20 +190,26 @@ class ModalDrawBrushOperator(bpy.types.Operator):
                     self.previous_impact = best_hit
                     self.delta = 0
 
-                    e = add_prop_instance(context,'rock',1)
-                    e.location = best_hit
-                    if context.scene.build_props.paint_random_scale:
-                        factor = random.uniform(context.scene.build_props.paint_random_min_max[0], context.scene.build_props.paint_random_min_max[1])
-                        e.scale.xyz = (factor,factor,factor)
-                    #TODO Get correct rotation !!!!
+                    self.add_prop(context,best_hit,best_normal)
 
             elif event.value == 'RELEASE':
                 self.lmb = False
+
+        elif event.type == 'RIGHTMOUSE':
+            if event.value == 'PRESS':
+                try:
+                    last_obj = self.temp_obj[-1]
+                    self.temp_obj.pop()
+                    delete_all_temp_objects(context,[last_obj.name])
+                    print(len(self.temp_obj))
+                except:
+                    print('List is Empty !')
+
         elif event.type  in {'S'} and event.value == 'PRESS':
             context.scene.build_props.brush_distance +=  0.1
         elif event.type in {'R'} and event.value == 'PRESS':
             context.scene.build_props.brush_distance +=  -0.1
-        elif event.type in {'ESC'}:
+        elif event.type in {'ESC','RET'}:
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             self.depth_location = Vector((0.0, 0.0, 0.0))
             return {'CANCELLED'}
@@ -167,6 +233,9 @@ class ModalDrawBrushOperator(bpy.types.Operator):
         self.depth_location = Vector((0.0, 0.0, 0.0))
         self.surface_found = False
         self.lmb = False
+        self.temp_obj= []
+        self.current_var = 1
+        self.nb_var = get_var_count(context)
 
 
 
@@ -206,11 +275,11 @@ class ModalDrawLineOperator(bpy.types.Operator):
             props_order = get_props_order(context,edge_length,props)
             curent_distance = 0.0
             for value in props_order:
-                dupli = get_prop_group_instance(context,value[0])
-                dupli.scale[0] = value[1]
+                dupli = add_prop_instance(context,context.scene.build_props.props_variation,value[1])
+                dupli.scale[0] = value[2]
                 dupli.rotation_euler = rot
                 dupli.location = vert_0 + direction_x.normalized()*curent_distance
-                curent_distance += props[value[0]]*value[1]
+                curent_distance += props[value[0]]*value[2]
                 self.allobjs.append(dupli.name)
 
     def execute(self, context):

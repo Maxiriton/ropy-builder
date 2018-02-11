@@ -17,8 +17,28 @@
 # END GPL LICENSE BLOCK #####
 
 import bpy
+import blf
+import bgl
 
 from .operators import *
+
+def draw_typo_2d(color,x,y, text):
+    font_id = 0
+    bgl.glColor4f(*color)
+    blf.position(font_id, x, y, 0)
+    blf.size(font_id, 12, 72)
+    blf.draw(font_id, text)
+
+
+def draw_callback_change_prop_px(self,context):
+    region = context.region
+    rv3d = context.space_data.region_3d
+
+    bgl.glEnable(bgl.GL_BLEND)
+    draw_typo_2d((1.0,1.0,1.0,1),100,100,"cocuou")
+    bgl.glEnd()
+    bgl.glDisable(bgl.GL_BLEND)
+
 
 def draw_callback_brush_px(self, context):
     region = context.region
@@ -44,13 +64,12 @@ def draw_callback_line_px(self, context):
     region = context.region
     rv3d = context.space_data.region_3d
 
-
     # Draw Points
     bgl.glEnable(bgl.GL_BLEND)
     bgl.glColor4f(0.0, 0.8, 0.0, 1.0)
     bgl.glPointSize(5.0)
     bgl.glBegin(bgl.GL_POINTS)
-    bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
+    # bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
 
     for x in self.list_construction_points:
         loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
@@ -169,6 +188,8 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
             col.prop(scene.build_props, "paint_random_min_max")
         row = layout.row()
         row.operator("view3d.modal_draw_brush", text="Draw Props with Brush", icon='BRUSH_DATA')
+        row = layout.row()
+        row.operator("ropy.change_prop_variation")
         row = layout.row()
         row.operator("ropy.remove_orphan_props", icon='CANCEL')
 

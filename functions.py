@@ -81,6 +81,10 @@ def collect_groups_variation_distant_file(context):
 
     return collections
 
+def get_var_count(context):
+    collections = collect_groups_variation_distant_file(context)
+    return len(collections[context.scene.build_props.props_variation])
+
 def get_collection_instance(context):
     """get a list of all the groups contained in a collection"""
     col_name = context.scene.build_props.props_variation
@@ -214,7 +218,7 @@ def get_props_order(context,edge_length,p_props_collection):
     while cur_len < edge_length and not reach_end:
         index = i % len(p_props_collection)
         name = "p_"+context.scene.build_props.props_variation+'_'+str(index+1)
-        props_order.append((name,1.0))
+        props_order.append((name,index+1,1.0)) #we store (full_name, variation_index,scale_value)
         cur_len += p_props_collection[name]
         i +=1
 
@@ -224,8 +228,8 @@ def get_props_order(context,edge_length,p_props_collection):
 
     scale_factor = (elem_size-overflow)/elem_size
 
-    (last_element_name,value) = props_order[-1]
-    props_order[-1] = (last_element_name,scale_factor)
+    (last_element_name,collection_index,scale_value) = props_order[-1]
+    props_order[-1] = (last_element_name,collection_index,scale_factor)
 
     random.seed(context.scene.build_props.seed)
     random.shuffle(props_order)
@@ -317,7 +321,7 @@ def get_ray_cast_result(context,coord_mouse,use_all_objects=False):
 
 def remove_orphan_props_func(context):
     for obj in context.scene.objects:
-        if obj.type == 'EMPTY' and obj.name.startswith('g_'):
+        if obj.type == 'EMPTY' and obj.name.startswith('g_') and obj.parent is None :
             bpy.data.objects.remove(obj,True)
 
 
@@ -326,8 +330,8 @@ def delete_all_temp_objects(context,obj_to_delete):
         obj.select = False
 
     for name in obj_to_delete:
-        print('coucou' +name)
         context.scene.objects[name].hide_select = False
         context.scene.objects[name].select = True
 
     bpy.ops.object.delete(use_global=True)
+    remove_orphan_props_func(context)
