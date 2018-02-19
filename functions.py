@@ -38,6 +38,23 @@ class construction_point():
 
 ###### ______Utils Functions Definition______ ######
 
+def get_variation_type_and_number(pObj):
+    """Extract the variation type and number from an instance"""
+    rex = re.compile('\.\d{3}$')
+
+    _type = pObj.name[2:]
+
+    if rex.search(pObj.name):
+        _type = _type[:-4]
+
+    _var = pObj.children[0].name.split('_')[-1]
+
+    if rex.search(pObj.children[0].name):
+        _var = _var[:-4]
+
+    return _type,int(_var)
+
+
 def get_groups_items(self,context):
     collections = collect_groups_variation_distant_file(context)
     result = []
@@ -81,9 +98,11 @@ def collect_groups_variation_distant_file(context):
 
     return collections
 
-def get_var_count(context):
+def get_var_count(context,var_name = None):
     collections = collect_groups_variation_distant_file(context)
-    return len(collections[context.scene.build_props.props_variation])
+    if var_name is None:
+        var_name = context.scene.build_props.props_variation
+    return len(collections[var_name])
 
 def get_collection_instance(context):
     """get a list of all the groups contained in a collection"""
@@ -323,6 +342,8 @@ def remove_orphan_props_func(context):
     for obj in context.scene.objects:
         if obj.type == 'EMPTY' and obj.name.startswith('g_') and obj.parent is None :
             bpy.data.objects.remove(obj,True)
+
+    bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 
 def delete_all_temp_objects(context,obj_to_delete):

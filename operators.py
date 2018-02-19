@@ -83,19 +83,37 @@ class ChangePropVariation(bpy.types.Operator):
     bl_idname = "ropy.change_prop_variation"
     bl_label = " Change prop variation"
 
+    def change_prop(self,context):
+        obj = context.scene.objects.active
+
+        var, number = get_variation_type_and_number(obj)
+
+        count = get_var_count(context,var)
+        transforms = obj.matrix_world
+        bpy.data.objects.remove(obj.children[0],True)
+        bpy.data.objects.remove(obj, True)
+
+        new_prop  = add_prop_instance(context,var,(number%count)+1)
+        new_prop.matrix_world = transforms
+        new_prop.select = True
+        context.scene.objects.active = new_prop
+
+
     @classmethod
     def poll(cls,context):
-        return context.mode == 'OBJECT'
+        actif = context.scene.objects.active
+        return context.mode == 'OBJECT' and actif is not None and actif.name.startswith('i_')
 
     def modal(self,context,event):
         context.area.tag_redraw()
         region = context.region
         rv3d = context.space_data.region_3d
 
-        if event.type  in {'S'} and event.value == 'PRESS':
-            context.scene.build_props.brush_distance +=  0.1
+        if event.type == 'LEFTMOUSE':
+            if event.value == 'PRESS':
+                self.change_prop(context)
         elif event.type  in {'R'} and event.value == 'PRESS':
-            context.scene.build_props.brush_distance +=  0.1
+            self.change_prop(context)
         elif event.type in {'ESC'}:
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             return {'CANCELLED'}
