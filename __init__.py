@@ -83,6 +83,7 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         description="randomize the scale of painted object",
         default=True)
 
+
     paint_random_min_max = bpy.props.FloatVectorProperty(
         name = 'Scale limits',
         description = 'Minimum and maximumscale',
@@ -90,6 +91,19 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         size=2,
         soft_min=0.05,
         soft_max = 2.0)
+
+    paint_random_rotation = bpy.props.BoolProperty(
+        name ="Randomize rotation",
+        description="Randomize the rotation around objects Z axis",
+        default= True)
+
+    paint_random_max_angle = bpy.props.FloatProperty(
+        name = "Rotation max",
+        description = "Maximum Rotation angle",
+        subtype = "ANGLE",
+        unit = "ROTATION",
+        default = 0.5)
+
 
     props_variation = bpy.props.EnumProperty(items = get_groups_items)
 

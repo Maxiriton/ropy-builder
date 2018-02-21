@@ -62,6 +62,7 @@ class remove_orphan_props(bpy.types.Operator):
 
     def execute(self,context):
         remove_orphan_props_func(context)
+        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
         return {'FINISHED'}
 
 class collect_part_variation_operator(bpy.types.Operator):
@@ -90,11 +91,13 @@ class ChangePropVariation(bpy.types.Operator):
 
         count = get_var_count(context,var)
         transforms = obj.matrix_world
+
+        loc  = obj.location
         bpy.data.objects.remove(obj.children[0],True)
         bpy.data.objects.remove(obj, True)
 
         new_prop  = add_prop_instance(context,var,(number%count)+1)
-        new_prop.matrix_world = transforms
+        new_prop.location = loc
         new_prop.select = True
         context.scene.objects.active = new_prop
 
@@ -154,18 +157,24 @@ class ModalDrawBrushOperator(bpy.types.Operator):
 
         e = add_prop_instance(context,context.scene.build_props.props_variation,var+1)
         self.current_var += 1
-        e.location = location
+
+        loc_mat = Matrix.Translation(location)
+
+        scale_mat = Matrix.Scale(1,4,(1,0,0)) * Matrix.Scale(1,4,(0,1,0)) * Matrix.Scale(1,4,(0,0,1))
         if context.scene.build_props.paint_random_scale:
             factor = random.uniform(context.scene.build_props.paint_random_min_max[0], context.scene.build_props.paint_random_min_max[1])
-            e.scale.xyz = (factor,factor,factor)
-
-        mat_rot = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
+            scale_mat = Matrix.Scale(factor,4,(1,0,0)) * Matrix.Scale(factor,4,(0,1,0)) * Matrix.Scale(factor,4,(0,0,1))
 
         v0 = Vector(( 0.0,0,1.0 ))
-        direction_z = rotation
-        rot = v0.rotation_difference(direction_z)
+        orig_rot_mat = v0.rotation_difference(rotation).to_matrix().to_4x4()
 
-        e.rotation_euler = rot.to_euler()
+        mat_rot =  mathutils.Matrix.Rotation(0, 4, rotation)
+        if context.scene.build_props.paint_random_rotation:
+            factor = random.uniform(-context.scene.build_props.paint_random_max_angle,context.scene.build_props.paint_random_max_angle)
+            mat_rot = mathutils.Matrix.Rotation(factor, 4, rotation)
+
+
+        e.matrix_world = loc_mat * mat_rot * orig_rot_mat * scale_mat
         self.temp_obj.append(e)
 
     def modal(self,context,event):

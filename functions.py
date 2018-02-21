@@ -343,7 +343,7 @@ def remove_orphan_props_func(context):
         if obj.type == 'EMPTY' and obj.name.startswith('g_') and obj.parent is None :
             bpy.data.objects.remove(obj,True)
 
-    bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+    
 
 
 def delete_all_temp_objects(context,obj_to_delete):

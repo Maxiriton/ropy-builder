@@ -186,6 +186,16 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
         if scene.build_props.paint_random_scale:
             col = split.column()
             col.prop(scene.build_props, "paint_random_min_max")
+
+        row = layout.row()
+        split = row.split(percentage=0.5)
+        col = split.column()
+        col.prop(scene.build_props, "paint_random_rotation")
+        if scene.build_props.paint_random_rotation:
+            col = split.column()
+            col.prop(scene.build_props, "paint_random_max_angle")
+
+
         row = layout.row()
         row.operator("view3d.modal_draw_brush", text="Draw Props with Brush", icon='BRUSH_DATA')
         row = layout.row()
