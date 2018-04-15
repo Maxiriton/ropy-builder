@@ -236,4 +236,22 @@ class PROPERTIES_PT_AssetEditor_database_Panel(bpy.types.Panel):
         scene = context.scene
 
         row = layout.row()
-        row.operator("ropy.add_group_to_database")
+        row.operator("ropy.add_cat_to_database")
+
+        row = layout.row()
+        row.label('Group Management : ')
+        row = layout.row()
+        split = row.split(percentage=0.8)
+        col = split.column()
+        row = col.row()
+        row.prop(scene.build_props, "assets_categories")
+        row = col.row()
+        row.prop(scene.build_props, "current_groups_in_files")
+
+        split = split.split()
+
+        col = split.column()
+        row = col.row()
+        row = col.row()
+        row.scale_y = 2
+        row.operator("ropy.add_asset_to_database",icon='FORCE_BOID')

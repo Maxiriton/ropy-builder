@@ -33,18 +33,17 @@ if "bpy" in locals():
     imp.reload(functions)
     imp.reload(operators)
     imp.reload(ui)
+    imp.reload(database)
 
 else:
-    from . import functions, operators, ui
+    from . import functions, operators, ui,database
 
 import bpy
-from .functions import get_groups_items
+from .functions import get_groups_items, get_db_categories,get_group_list
 
 
 
 class RopyBuilderPreferences(bpy.types.AddonPreferences):
-    # this must match the addon name, use '__package__'
-    # when defining this in a submodule of a python package.
     bl_idname = __package__
 
     libPath = bpy.props.StringProperty(
@@ -52,14 +51,18 @@ class RopyBuilderPreferences(bpy.types.AddonPreferences):
             subtype='FILE_PATH',
             )
 
+    dbPath = bpy.props.StringProperty(
+            name="Database Path",
+            subtype='FILE_PATH',
+            )
+
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "libPath")
+        layout.prop(self, "dbPath")
 
 class RopyBuilderProperties(bpy.types.PropertyGroup):
     """"Store properties in the active scene"""
-
-
 
     seed = bpy.props.IntProperty(
         name="Seed",
@@ -105,8 +108,20 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         default = 0.5)
 
 
-    props_variation = bpy.props.EnumProperty(items = get_groups_items)
+    props_variation = bpy.props.EnumProperty(
+        items = get_groups_items,
+        name = "Group Items",
+        description = "Group Items")
 
+    assets_categories = bpy.props.EnumProperty(
+        items = get_db_categories,
+        name = "Categories",
+        description = "Categories stored in database")
+
+    current_groups_in_files = bpy.props.EnumProperty(
+        items = get_group_list,
+        name = "Group",
+        description = "List of groups in current blender file")
 def register():
     bpy.utils.register_module(__name__)
     bpy.types.Scene.build_props = bpy.props.PointerProperty(type=RopyBuilderProperties)

@@ -24,6 +24,7 @@ import bmesh
 import bpy_extras
 import re
 from mathutils import Vector, Matrix
+from .database import *
 
 
 ###### ______Utils Class Definition______ ######
@@ -38,7 +39,18 @@ class construction_point():
 
 ###### ______Utils Functions Definition______ ######
 
+def get_db_categories(self,context):
+    """Get a list of all the current categories stored in database"""
+    db_path = context.user_preferences.addons[__package__].preferences.dbPath
+    return get_all_categories(db_path)
 
+def get_group_list(self,context):
+    """Get an enum of all the groups in the file"""
+    result = []
+    for group in bpy.data.groups:
+        result.append((group.name,group.name,group.name))
+
+    return result
 
 def get_variation_type_and_number(pObj):
     """Extract the variation type and number from an instance"""
@@ -55,6 +67,7 @@ def get_variation_type_and_number(pObj):
         _var = _var[:-4]
 
     return _type,int(_var)
+
 
 
 def get_groups_items(self,context):
@@ -117,6 +130,23 @@ def get_collection_instance(context):
         result[groupName] = dimension
 
     return result
+
+
+def get_group_dimension_x_new(context,pGroupName):
+    minx = 99999.0
+    maxx = -99999.0
+
+    group = bpy.data.groups[pGroupName]
+    for obj in group.objects:
+        for v in obj.bound_box:
+            v_world = obj.matrix_world * Vector((v[0],v[1],v[2]))
+
+            if v_world[0] < minx:
+                minx = v_world[0]
+            if v_world[0] > maxx:
+                maxx = v_world[0]
+
+    return maxx-minx
 
 def get_group_dimension_x(context,pGroupName):
     minx = 99999.0
@@ -356,6 +386,3 @@ def delete_all_temp_objects(context,obj_to_delete):
 
     bpy.ops.object.delete(use_global=True)
     remove_orphan_props_func(context)
-
-def add_group_to_database(context):
-    print('TODO')

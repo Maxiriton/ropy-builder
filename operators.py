@@ -22,11 +22,11 @@ from  math import radians
 
 from .functions import *
 from .database import *
-from .ui import draw_callback_line_px, draw_callback_brush_px,draw_callback_change_prop_px
+from .ui import draw_callback_line_px,draw_callback_brush_px,draw_callback_change_prop_px
 
-class add_group_to_database(bpy.types.Operator):
+class AddAssetToDatabase(bpy.types.Operator):
     """Add the current group to the database"""
-    bl_idname = "ropy.add_group_to_database"
+    bl_idname = "ropy.add_asset_to_database"
     bl_label = "Add to database"
 
     @classmethod
@@ -34,11 +34,61 @@ class add_group_to_database(bpy.types.Operator):
         return context.mode == 'OBJECT'
 
     def execute(self, context):
-        add_group_to_database(context)
+        dbPath = context.user_preferences.addons[__package__].preferences.dbPath
+        curFile = bpy.data.filepath
+
+        relFilePath = get_relative_file_path(dbPath,curFile)
+        catId = context.scene.build_props.assets_categories
+        groupName = context.scene.build_props.current_groups_in_files
+        groupDimX= get_group_dimension_x_new(context,groupName)
+
+        status, message = add_new_asset(dbPath,catId,groupName,relFilePath,groupDimX)
+        self.report(status,message)
+        return {'FINISHED'}
+
+class AddCategoryToDatabase(bpy.types.Operator):
+    """Add a new asset category into the database"""
+    bl_idname = "ropy.add_cat_to_database"
+    bl_label = "Create a new category"
+
+    cat_name = bpy.props.StringProperty(name="cat_name")
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def invoke(self,context,event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def execute(self, context):
+        db_path = context.user_preferences.addons[__package__].preferences.dbPath
+        status, message = add_new_category(db_path,self.cat_name)
+        self.report(status,message)
+        return {'FINISHED'}
+
+    def draw(self,context):
+        layout = self.layout
+        row = layout.row()
+        row.prop(self,"cat_name")
+
+
+class InitDatabase(bpy.types.Operator):
+    """Initialize the database"""
+    bl_idname = "ropy.init_database"
+    bl_label = "Initialize Database"
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def execute(self, context):
+        cur_path = bpy.path.abspath('//assets.db')
+        init_assets_database(cur_path)
         return {'FINISHED'}
 
 
-class Generate_room_operator(bpy.types.Operator):
+class GenerateRoomOperator(bpy.types.Operator):
     """Generate walls and roof from selection"""
     bl_idname = "edit.generate_room"
     bl_label = "Generate Room"
@@ -79,6 +129,7 @@ class remove_orphan_props(bpy.types.Operator):
         remove_orphan_props_func(context)
         bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
         return {'FINISHED'}
+
 
 class collect_part_variation_operator(bpy.types.Operator):
     """Collect props groups from library file"""
@@ -149,12 +200,6 @@ class ChangePropVariation(bpy.types.Operator):
 
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
-
-
-
-
-
-
 
 
 class ModalDrawBrushOperator(bpy.types.Operator):
