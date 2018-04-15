@@ -222,3 +222,18 @@ class VIEW3D_PT_BuilderEditor_edit_Panel(bpy.types.Panel):
         row.operator("edit.generate_room", icon='VIEWZOOM')
         row = layout.row()
         row.operator("uv.cube_project", icon='MOD_UVPROJECT')
+
+class PROPERTIES_PT_AssetEditor_database_Panel(bpy.types.Panel):
+    """UI for the database management"""
+    bl_label = "Database Management"
+    bl_idname = "PROPERTIES_PT_asset_editor_database_panel"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+
+        row = layout.row()
+        row.operator("ropy.add_group_to_database")

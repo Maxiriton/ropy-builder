@@ -21,7 +21,22 @@ import mathutils
 from  math import radians
 
 from .functions import *
+from .database import *
 from .ui import draw_callback_line_px, draw_callback_brush_px,draw_callback_change_prop_px
+
+class add_group_to_database(bpy.types.Operator):
+    """Add the current group to the database"""
+    bl_idname = "ropy.add_group_to_database"
+    bl_label = "Add to database"
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def execute(self, context):
+        add_group_to_database(context)
+        return {'FINISHED'}
+
 
 class Generate_room_operator(bpy.types.Operator):
     """Generate walls and roof from selection"""

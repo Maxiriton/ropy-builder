@@ -38,6 +38,8 @@ class construction_point():
 
 ###### ______Utils Functions Definition______ ######
 
+
+
 def get_variation_type_and_number(pObj):
     """Extract the variation type and number from an instance"""
     rex = re.compile('\.\d{3}$')
@@ -343,8 +345,6 @@ def remove_orphan_props_func(context):
         if obj.type == 'EMPTY' and obj.name.startswith('g_') and obj.parent is None :
             bpy.data.objects.remove(obj,True)
 
-    
-
 
 def delete_all_temp_objects(context,obj_to_delete):
     for obj in context.visible_objects:
@@ -356,3 +356,6 @@ def delete_all_temp_objects(context,obj_to_delete):
 
     bpy.ops.object.delete(use_global=True)
     remove_orphan_props_func(context)
+
+def add_group_to_database(context):
+    print('TODO')
