@@ -148,6 +148,37 @@ def draw_callback_line_px(self, context):
     # bgl.glDisable(bgl.GL_BLEND)
     # bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
 
+class VIEW3D_PT_RopyPanel(bpy.types.Panel):
+    """New UI for level editor"""
+    bl_label = "Blevel Editor"
+    bl_idname = "VIEW3D_PT_Ropy_Editor"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_context = "objectmode"
+    bl_category = "Ropy Builder"
+
+    def draw(self,context):
+        layout = self.layout
+        scene = context.scene
+
+
+        row = layout.row()
+        row.prop(scene.build_props, "assets_categories")
+        row = layout.row()
+        row.operator("ropy.link_groups_to_file", icon='LOAD_FACTORY')
+
+        row = layout.row()
+        row.prop(scene.build_props, "seed")
+
+        row = layout.row()
+        split = row.split(percentage=0.5)
+        col = split.column()
+        row = col.row()
+        row.operator("ropy.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
+
+
+
+
 class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
     """UI for level editor"""
     bl_label = "Level Editor"
@@ -173,7 +204,7 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
         row.prop(scene.build_props, "seed")
 
         row = layout.row()
-        row.operator("view3d.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
+        row.operator("ropy.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
 
         row = layout.row()
         row.prop(scene.build_props, "brush_distance")

@@ -28,6 +28,34 @@ def get_relative_file_path(pDatabaseBasePath,pFilePath):
     relativePath = relpath(pFilePath,dirname(pDatabaseBasePath))
     return relativePath
 
+def get_blender_file_abs_path(pDatabaseBasePath,pRelFilePath):
+    """Get the absolute file path for a library file"""
+    return join(dirname(pDatabaseBasePath),pRelFilePath)
+
+
+
+def get_group_list_in_category(pDatabaseBasePath, pCatId):
+    """Get a list from the db of all groups in that category"""
+    rows = None
+    try:
+        conn = sqlite3.connect(pDatabaseBasePath)
+        c = conn.cursor()
+
+        t=(pCatId,0)
+        c.execute("SELECT id,groupName,filePath,dimensionX FROM assets WHERE catId=? AND isObsolete=?",t)
+        rows = c.fetchall()
+
+
+        # Save (commit) the changes
+        conn.commit()
+
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()
+
+    return rows
+
 
 def init_assets_database(pDatabaseBasePath):
     try:

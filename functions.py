@@ -44,6 +44,7 @@ def get_db_categories(self,context):
     db_path = context.user_preferences.addons[__package__].preferences.dbPath
     return get_all_categories(db_path)
 
+
 def get_group_list(self,context):
     """Get an enum of all the groups in the file"""
     result = []
@@ -51,6 +52,10 @@ def get_group_list(self,context):
         result.append((group.name,group.name,group.name))
 
     return result
+
+def link_groups_to_file(context,pFilePath,pGroupName):
+    with bpy.data.libraries.load(pFilePath, link=True, relative=True) as (data_from, data_to):
+        data_to.groups = [pGroupName]
 
 def get_variation_type_and_number(pObj):
     """Extract the variation type and number from an instance"""
@@ -102,8 +107,8 @@ def collect_groups_variation_distant_file(context):
     filepath = context.user_preferences.addons[__package__].preferences.libPath
 
     collections = {}
-    with bpy.data.libraries.load(filepath, link=False) as (data_src, data_dst):
-        for GroupName in data_src.groups:
+    with bpy.data.libraries.load(filepath, link=False) as (data_from, data_to):
+        for GroupName in data_from.groups:
             group_parsed= GroupName.split('_')
             prop_col_name =  group_parsed[1]
             if prop_col_name in collections:
@@ -148,43 +153,9 @@ def get_group_dimension_x_new(context,pGroupName):
 
     return maxx-minx
 
-def get_group_dimension_x(context,pGroupName):
-    minx = 99999.0
-    maxx = -99999.0
-    try:
-        group = bpy.data.groups[pGroupName]
-        for obj in group.objects:
-            for v in obj.bound_box:
-                v_world = obj.matrix_world * Vector((v[0],v[1],v[2]))
-
-                if v_world[0] < minx:
-                    minx = v_world[0]
-                if v_world[0] > maxx:
-                    maxx = v_world[0]
-    except:
-        filepath = context.user_preferences.addons[__package__].preferences.libPath
-        link = False
-
-        # append all groups from the .blend file
-        with bpy.data.libraries.load(filepath, link=link) as (data_src, data_dst):
-            data_dst.groups = [pGroupName]
-
-        for group in data_dst.groups:
-            for obj in group.objects:
-                for v in obj.bound_box:
-                    v_world = obj.matrix_world * Vector((v[0],v[1],v[2]))
-
-                    if v_world[0] < minx:
-                        minx = v_world[0]
-                    if v_world[0] > maxx:
-                        maxx = v_world[0]
-
-    return maxx-minx
-
-
-
 def get_prop_group_instance(context, pGroupName):
-    """Append a group from the library or just return the instance if it is already in scene"""
+    """Append a group from the library or just return the instance
+        if it is already in scene"""
 
     try:
         group = bpy.data.groups[pGroupName]
@@ -201,10 +172,10 @@ def get_prop_group_instance(context, pGroupName):
         link = False
 
         # append all groups from the .blend file
-        with bpy.data.libraries.load(filepath, link=link) as (data_src, data_dst):
-            data_dst.groups = [pGroupName]
+        with bpy.data.libraries.load(filepath, link=link) as (data_from, data_to):
+            data_to.groups = [pGroupName]
 
-        for group in data_dst.groups:
+        for group in data_to.groups:
             instance = bpy.data.objects.new('g_'+group.name, None)
             instance.dupli_type = 'GROUP'
             instance.dupli_group = group
@@ -212,16 +183,17 @@ def get_prop_group_instance(context, pGroupName):
             instance.hide_select = True
             return instance
 
-def add_prop_instance(context,propName,variation):
-    o = bpy.data.objects.new('i_{}'.format(propName), None )
+def add_prop_instance(context,groupName):
+    """Add a new empty to the scene with a dupligroup on it.
+       We assume that the group is already linked to scene!"""
+
+    group = bpy.data.groups[groupName]
+    o = bpy.data.objects.new('i_{}'.format(groupName), None )
+    o.dupli_type = 'GROUP'
+    o.dupli_group = group
     o.empty_draw_size = 1
     o.empty_draw_type = 'PLAIN_AXES'
     context.scene.objects.link(o)
-
-    group_name = 'p_'+propName+'_'+str(int(variation))
-    instance = get_prop_group_instance(context,group_name)
-
-    instance.parent = o
 
     return o
 
@@ -260,32 +232,35 @@ def orient_object_to_normal(context,pNormVect,pObject):
 
 
 
-def get_props_order(context,edge_length,p_props_collection):
-
-    props_order = []
-    reach_end = False
+def get_props_order(context,edge_length,rows):
+    """Used for ModalDrawLineOperator.
+        Return a list containing group, its X dimension and its potential
+        scale value. The list is randomized based on the current context
+        seed value"""
+    #row schema : ID,GROUP_NAME,FILE_PATH,GROUP_LENGTH
+    propsOrder = []
     i = 0
-    cur_len = 0.0
-    while cur_len < edge_length and not reach_end:
-        index = i % len(p_props_collection)
-        name = "p_"+context.scene.build_props.props_variation+'_'+str(index+1)
-        props_order.append((name,index+1,1.0)) #we store (full_name, variation_index,scale_value)
-        cur_len += p_props_collection[name]
+    curLen = 0.0
+    cur_index = 0
+    while curLen < edge_length:
+        cur_index = i % len(rows)
+        dimX = rows[cur_index][3]
+        groupName = rows[cur_index][1]
+        propsOrder.append((dimX,groupName,1.0)) #Last value is scale_value
+        curLen += dimX
         i +=1
 
-    overflow = cur_len - edge_length
-    #on scale le dernier element
-    elem_size = p_props_collection[props_order[-1][0]]
-
+    overflow = curLen - edge_length
+    elem_size = rows[cur_index][3]
     scale_factor = (elem_size-overflow)/elem_size
 
-    (last_element_name,collection_index,scale_value) = props_order[-1]
-    props_order[-1] = (last_element_name,collection_index,scale_factor)
+    (dimX,groupName,scale_value) = propsOrder[-1]
+    propsOrder[-1] = (dimX,groupName,scale_factor)
 
     random.seed(context.scene.build_props.seed)
-    random.shuffle(props_order)
+    random.shuffle(propsOrder)
 
-    return props_order
+    return propsOrder
 
 def obj_ray_cast(obj, matrix,ray_origin,ray_target):
     """Wrapper for ray casting that moves the ray into object space"""

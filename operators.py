@@ -46,6 +46,27 @@ class AddAssetToDatabase(bpy.types.Operator):
         self.report(status,message)
         return {'FINISHED'}
 
+class LinkGroupsToFile(bpy.types.Operator):
+    """Link all the groups from the current category to the blender file"""
+    bl_idname = "ropy.link_groups_to_file"
+    bl_label = "Link category to file"
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def execute(self, context):
+        dbPath = context.user_preferences.addons[__package__].preferences.dbPath
+        catId = context.scene.build_props.assets_categories
+
+        rows = get_group_list_in_category(dbPath,catId)
+        for row in rows:
+            filePath=get_blender_file_abs_path(dbPath, row[2])
+            link_groups_to_file(context,filePath,row[1])
+
+        return {'FINISHED'}
+
+
 class AddCategoryToDatabase(bpy.types.Operator):
     """Add a new asset category into the database"""
     bl_idname = "ropy.add_cat_to_database"
@@ -332,15 +353,13 @@ class ModalDrawBrushOperator(bpy.types.Operator):
 
 class ModalDrawLineOperator(bpy.types.Operator):
     """Draw a line with the mouse"""
-    bl_idname = "view3d.modal_draw_line"
-    bl_label = "Simple Modal View3D Operator"
+    bl_idname = "ropy.modal_draw_line"
+    bl_label = "Line filled Assets"
 
 
     def update_mouse_action(self,context):
         delete_all_temp_objects(context,self.allobjs)
         self.allobjs = []
-        #on recupere la liste des variations de props
-        props = get_collection_instance(context)
         vert_0 = None
 
         for i in range(len(self.list_construction_points)):
@@ -359,14 +378,15 @@ class ModalDrawLineOperator(bpy.types.Operator):
             rot = v0.rotation_difference( direction_x ).to_euler()
 
 
-            props_order = get_props_order(context,edge_length,props)
+            propsOrder = get_props_order(context,edge_length,self.group_list)
+            print(propsOrder)
             curent_distance = 0.0
-            for value in props_order:
-                dupli = add_prop_instance(context,context.scene.build_props.props_variation,value[1])
-                dupli.scale[0] = value[2]
+            for dimX,groupName, scaleValue in propsOrder:
+                dupli = add_prop_instance(context,groupName)
+                dupli.scale[0] = scaleValue
                 dupli.rotation_euler = rot
                 dupli.location = vert_0 + direction_x.normalized()*curent_distance
-                curent_distance += props[value[0]]*value[2]
+                curent_distance += dimX*scaleValue
                 self.allobjs.append(dupli.name)
 
     def execute(self, context):
@@ -486,21 +506,21 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
     def invoke(self, context, event):
         if context.area.type == 'VIEW_3D':
-            # the arguments we pass the the callback
-
             args = (self, context)
-
-            # Add the region OpenGL drawing callback
-            # draw in view space with 'POST_VIEW' and 'PRE_VIEW'
             self._handle = bpy.types.SpaceView3D.draw_handler_add(
                 draw_callback_line_px, args, 'WINDOW', 'POST_PIXEL')
 
-
+            #We iniatialize all the variables we are going to use
             self.mouse_path = []
             self.list_construction_points = []
             self.depth_location = Vector((0.0, 0.0, 0.0))
             self.surface_found = False
             self.allobjs = []
+
+            dbPath = context.user_preferences.addons[__package__].preferences.dbPath
+            catId = context.scene.build_props.assets_categories
+
+            self.group_list = get_group_list_in_category(dbPath,catId)
             context.window_manager.modal_handler_add(self)
 
             return {'RUNNING_MODAL'}
