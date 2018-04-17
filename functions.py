@@ -57,31 +57,15 @@ def link_groups_to_file(context,pFilePath,pGroupName):
     with bpy.data.libraries.load(pFilePath, link=True, relative=True) as (data_from, data_to):
         data_to.groups = [pGroupName]
 
-def get_variation_type_and_number(pObj):
-    """Extract the variation type and number from an instance"""
+def extract_groupName(pObj):
+    """Extract the GroupName from the name of an object"""
     rex = re.compile('\.\d{3}$')
 
-    _type = pObj.name[2:]
-
+    groupName = pObj.name[2:]
     if rex.search(pObj.name):
-        _type = _type[:-4]
+        groupName = groupName[:-4]
 
-    _var = pObj.children[0].name.split('_')[-1]
-
-    if rex.search(pObj.children[0].name):
-        _var = _var[:-4]
-
-    return _type,int(_var)
-
-
-
-def get_groups_items(self,context):
-    collections = collect_groups_variation_distant_file(context)
-    result = []
-    for index,key in enumerate(collections.keys()):
-        result.append((key,key,key))
-    return result
-
+    return groupName
 
 def area_of_type(type_name):
     for area in bpy.context.screen.areas:
@@ -102,41 +86,6 @@ def get_tuple(iterable, length, format=tuple):
     while True:
         yield format(chain((next(it),), islice(it, length - 1)))
 
-
-def collect_groups_variation_distant_file(context):
-    filepath = context.user_preferences.addons[__package__].preferences.libPath
-
-    collections = {}
-    with bpy.data.libraries.load(filepath, link=False) as (data_from, data_to):
-        for GroupName in data_from.groups:
-            group_parsed= GroupName.split('_')
-            prop_col_name =  group_parsed[1]
-            if prop_col_name in collections:
-                collections[prop_col_name].append(GroupName)
-            else:
-                collections[prop_col_name] = [GroupName]
-
-    return collections
-
-def get_var_count(context,var_name = None):
-    collections = collect_groups_variation_distant_file(context)
-    if var_name is None:
-        var_name = context.scene.build_props.props_variation
-    return len(collections[var_name])
-
-def get_collection_instance(context):
-    """get a list of all the groups contained in a collection"""
-    col_name = context.scene.build_props.props_variation
-
-    collections = collect_groups_variation_distant_file(context)
-    result = {}
-    for groupName in collections[col_name]:
-        dimension = get_group_dimension_x(context,groupName)
-        result[groupName] = dimension
-
-    return result
-
-
 def get_group_dimension_x_new(context,pGroupName):
     minx = 99999.0
     maxx = -99999.0
@@ -153,36 +102,6 @@ def get_group_dimension_x_new(context,pGroupName):
 
     return maxx-minx
 
-def get_prop_group_instance(context, pGroupName):
-    """Append a group from the library or just return the instance
-        if it is already in scene"""
-
-    try:
-        group = bpy.data.groups[pGroupName]
-        instance = bpy.data.objects.new('g_'+pGroupName, None)
-        instance.dupli_type = 'GROUP'
-        instance.dupli_group = group
-        instance.empty_draw_size = 1
-        instance.empty_draw_type = 'PLAIN_AXES'
-        context.scene.objects.link(instance)
-        instance.hide_select = True
-        return instance
-    except:
-        filepath = context.user_preferences.addons[__package__].preferences.libPath
-        link = False
-
-        # append all groups from the .blend file
-        with bpy.data.libraries.load(filepath, link=link) as (data_from, data_to):
-            data_to.groups = [pGroupName]
-
-        for group in data_to.groups:
-            instance = bpy.data.objects.new('g_'+group.name, None)
-            instance.dupli_type = 'GROUP'
-            instance.dupli_group = group
-            context.scene.objects.link(instance)
-            instance.hide_select = True
-            return instance
-
 def add_prop_instance(context,groupName):
     """Add a new empty to the scene with a dupligroup on it.
        We assume that the group is already linked to scene!"""
@@ -196,8 +115,6 @@ def add_prop_instance(context,groupName):
     context.scene.objects.link(o)
 
     return o
-
-
 
 
 ###### ______Functions Definition______ ######
@@ -345,13 +262,8 @@ def get_ray_cast_result(context,coord_mouse,use_all_objects=False):
 
     return best_hit,best_obj,best_normal,best_face_index
 
-def remove_orphan_props_func(context):
-    for obj in context.scene.objects:
-        if obj.type == 'EMPTY' and obj.name.startswith('g_') and obj.parent is None :
-            bpy.data.objects.remove(obj,True)
 
-
-def delete_all_temp_objects(context,obj_to_delete):
+def delete_temp_objects(context,obj_to_delete):
     for obj in context.visible_objects:
         obj.select = False
 
@@ -360,4 +272,3 @@ def delete_all_temp_objects(context,obj_to_delete):
         context.scene.objects[name].select = True
 
     bpy.ops.object.delete(use_global=True)
-    remove_orphan_props_func(context)

@@ -33,7 +33,6 @@ def get_blender_file_abs_path(pDatabaseBasePath,pRelFilePath):
     return join(dirname(pDatabaseBasePath),pRelFilePath)
 
 
-
 def get_group_list_in_category(pDatabaseBasePath, pCatId):
     """Get a list from the db of all groups in that category"""
     rows = None
@@ -45,6 +44,32 @@ def get_group_list_in_category(pDatabaseBasePath, pCatId):
         c.execute("SELECT id,groupName,filePath,dimensionX FROM assets WHERE catId=? AND isObsolete=?",t)
         rows = c.fetchall()
 
+
+        # Save (commit) the changes
+        conn.commit()
+
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()
+
+    return rows
+
+def get_group_list_from_group(pDatabaseBasePath,pGroupName):
+    """Get a list of groups that all share the same category
+        as the Group parameter"""
+
+    rows = None
+    try:
+        conn = sqlite3.connect(pDatabaseBasePath)
+        c = conn.cursor()
+
+        t=(pGroupName,0)
+        c.execute("SELECT catId FROM assets WHERE groupName=? AND isObsolete=?",t)
+        cat = c.fetchone()
+
+        rows = get_group_list_in_category(pDatabaseBasePath,cat[0])
+        print(rows)
 
         # Save (commit) the changes
         conn.commit()

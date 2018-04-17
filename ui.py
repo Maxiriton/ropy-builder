@@ -150,7 +150,7 @@ def draw_callback_line_px(self, context):
 
 class VIEW3D_PT_RopyPanel(bpy.types.Panel):
     """New UI for level editor"""
-    bl_label = "Blevel Editor"
+    bl_label = "Level Editor"
     bl_idname = "VIEW3D_PT_Ropy_Editor"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
@@ -161,7 +161,6 @@ class VIEW3D_PT_RopyPanel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
 
-
         row = layout.row()
         row.prop(scene.build_props, "assets_categories")
         row = layout.row()
@@ -171,46 +170,14 @@ class VIEW3D_PT_RopyPanel(bpy.types.Panel):
         row.prop(scene.build_props, "seed")
 
         row = layout.row()
-        split = row.split(percentage=0.5)
-        col = split.column()
-        row = col.row()
-        row.operator("ropy.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
-
-
-
-
-class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
-    """UI for level editor"""
-    bl_label = "Level Editor"
-    bl_idname = "VIEW3D_PT_Level_Editor"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
-    bl_context = "objectmode"
-    bl_category = "Ropy Builder"
-
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-
-
-        row = layout.row()
-        row.operator("ropy.collect_distant_groups", icon='LOAD_FACTORY')
-
-        row = layout.row()
-        row.prop(scene.build_props, "props_variation")
-
-        row = layout.row()
-        row.prop(scene.build_props, "seed")
-
-        row = layout.row()
         row.operator("ropy.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
 
         row = layout.row()
-        row.prop(scene.build_props, "brush_distance")
-        row = layout.row()
+        box = row.box()
+        box.prop(scene.build_props, "brush_distance", text="Spacing")
+        row = box.row()
         row.prop(scene.build_props, "paint_on_all_objects")
-        row = layout.row()
+        row = box.row()
         split = row.split(percentage=0.5)
         col = split.column()
         col.prop(scene.build_props, "paint_random_scale")
@@ -218,7 +185,7 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
             col = split.column()
             col.prop(scene.build_props, "paint_random_min_max")
 
-        row = layout.row()
+        row = box.row()
         split = row.split(percentage=0.5)
         col = split.column()
         col.prop(scene.build_props, "paint_random_rotation")
@@ -227,13 +194,11 @@ class VIEW3D_PT_BuilderEditorPanel(bpy.types.Panel):
             col.prop(scene.build_props, "paint_random_max_angle")
 
 
-        row = layout.row()
-        row.operator("view3d.modal_draw_brush", text="Draw Props with Brush", icon='BRUSH_DATA')
+        row = box.row()
+        row.operator("ropy.modal_draw_brush", text="Draw Props with Brush", icon='BRUSH_DATA')
+
         row = layout.row()
         row.operator("ropy.change_prop_variation")
-        row = layout.row()
-        row.operator("ropy.remove_orphan_props", icon='CANCEL')
-
 
 
 class VIEW3D_PT_BuilderEditor_edit_Panel(bpy.types.Panel):
@@ -243,7 +208,7 @@ class VIEW3D_PT_BuilderEditor_edit_Panel(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
     bl_context = "mesh_edit"
-    bl_category = "Artemis"
+    bl_category = "Ropy Builder"
 
     def draw(self, context):
         layout = self.layout

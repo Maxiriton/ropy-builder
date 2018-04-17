@@ -137,35 +137,6 @@ class GenerateRoomOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class remove_orphan_props(bpy.types.Operator):
-    """Remove props that are not selectionnable and not instanced"""
-    bl_idname = "ropy.remove_orphan_props"
-    bl_label = "Remove empty props"
-
-    @classmethod
-    def poll(cls,context):
-        return context.mode == 'OBJECT'
-
-    def execute(self,context):
-        remove_orphan_props_func(context)
-        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
-        return {'FINISHED'}
-
-
-class collect_part_variation_operator(bpy.types.Operator):
-    """Collect props groups from library file"""
-    bl_idname = "ropy.collect_distant_groups"
-    bl_label = "Collect Props Variation"
-
-    @classmethod
-    def poll(cls, context):
-        return context.mode == 'OBJECT'
-
-    def execute(self, context):
-        collect_groups_variation_distant_file(context)
-        return {'FINISHED'}
-
-
 class ChangePropVariation(bpy.types.Operator):
     """Change the variation of a prop"""
     bl_idname = "ropy.change_prop_variation"
@@ -173,20 +144,18 @@ class ChangePropVariation(bpy.types.Operator):
 
     def change_prop(self,context):
         obj = context.scene.objects.active
-
-        var, number = get_variation_type_and_number(obj)
-
-        count = get_var_count(context,var)
         transforms = obj.matrix_world
 
-        loc  = obj.location
-        bpy.data.objects.remove(obj.children[0],True)
-        bpy.data.objects.remove(obj, True)
+        self.index +=1
+        self.index = self.index % len(self.group_list)
 
-        new_prop  = add_prop_instance(context,var,(number%count)+1)
-        new_prop.location = loc
+        new_prop  = add_prop_instance(context,self.group_list[self.index][1])
+        print(transforms)
         new_prop.select = True
+        new_prop.matrix_world = transforms
         context.scene.objects.active = new_prop
+
+        bpy.data.objects.remove(obj, True)
 
 
     @classmethod
@@ -219,13 +188,29 @@ class ChangePropVariation(bpy.types.Operator):
         self._handle = bpy.types.SpaceView3D.draw_handler_add(
             draw_callback_change_prop_px, args, 'WINDOW', 'POST_PIXEL')
 
+        dbPath = context.user_preferences.addons[__package__].preferences.dbPath
+
+        obj = context.scene.objects.active
+        _groupName = extract_groupName(obj)
+        self.group_list = get_group_list_from_group(dbPath,_groupName)
+
+        #we are looking for the index of the group in list
+        _found = False
+        self.index = 0
+        while not _found:
+            if self.group_list[self.index][1] == _groupName:
+                _found = True
+            else:
+                self.index +=1
+
+
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
 
 class ModalDrawBrushOperator(bpy.types.Operator):
     """Draw props on scene"""
-    bl_idname = "view3d.modal_draw_brush"
+    bl_idname = "ropy.modal_draw_brush"
     bl_label = "Draw Props on surfaces"
 
     @classmethod
@@ -234,10 +219,8 @@ class ModalDrawBrushOperator(bpy.types.Operator):
 
 
     def add_prop(self,context,location,rotation):
-        var = self.current_var % self.nb_var
-
-        e = add_prop_instance(context,context.scene.build_props.props_variation,var+1)
-        self.current_var += 1
+        groupName = self.group_list[self.current_var][1]
+        e = add_prop_instance(context,groupName)
 
         loc_mat = Matrix.Translation(location)
 
@@ -254,9 +237,12 @@ class ModalDrawBrushOperator(bpy.types.Operator):
             factor = random.uniform(-context.scene.build_props.paint_random_max_angle,context.scene.build_props.paint_random_max_angle)
             mat_rot = mathutils.Matrix.Rotation(factor, 4, rotation)
 
-
         e.matrix_world = loc_mat * mat_rot * orig_rot_mat * scale_mat
+
         self.temp_obj.append(e)
+        #we need to update the index for next addition
+        self.current_var += 1
+        self.current_var = self.current_var % len(self.group_list)
 
     def modal(self,context,event):
         context.area.tag_redraw()
@@ -308,8 +294,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
                 try:
                     last_obj = self.temp_obj[-1]
                     self.temp_obj.pop()
-                    delete_all_temp_objects(context,[last_obj.name])
-                    print(len(self.temp_obj))
+                    delete_temp_objects(context,[last_obj.name])
                 except:
                     print('List is Empty !')
 
@@ -323,8 +308,6 @@ class ModalDrawBrushOperator(bpy.types.Operator):
             return {'CANCELLED'}
         return {'PASS_THROUGH'}
 
-
-
     def invoke(self, context, event):
         if context.area.type != 'VIEW_3D':
             self.report({'WARNING'}, "View3D not found, cannot run operator")
@@ -335,17 +318,18 @@ class ModalDrawBrushOperator(bpy.types.Operator):
         self._handle = bpy.types.SpaceView3D.draw_handler_add(
             draw_callback_line_px, args, 'WINDOW', 'POST_PIXEL')
 
-
-        self.mouse_path = []
         self.list_construction_points = []
         self.depth_location = Vector((0.0, 0.0, 0.0))
         self.surface_found = False
         self.lmb = False
+        self.delta = 0
         self.temp_obj= []
         self.current_var = 1
-        self.nb_var = get_var_count(context)
 
+        dbPath = context.user_preferences.addons[__package__].preferences.dbPath
+        catId = context.scene.build_props.assets_categories
 
+        self.group_list = get_group_list_in_category(dbPath,catId)
 
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
@@ -358,7 +342,7 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
 
     def update_mouse_action(self,context):
-        delete_all_temp_objects(context,self.allobjs)
+        delete_temp_objects(context,self.allobjs)
         self.allobjs = []
         vert_0 = None
 

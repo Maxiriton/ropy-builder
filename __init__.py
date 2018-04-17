@@ -39,17 +39,12 @@ else:
     from . import functions, operators, ui,database
 
 import bpy
-from .functions import get_groups_items, get_db_categories,get_group_list
+from .functions import get_db_categories,get_group_list
 
 
 
 class RopyBuilderPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
-
-    libPath = bpy.props.StringProperty(
-            name="Props File Path",
-            subtype='FILE_PATH',
-            )
 
     dbPath = bpy.props.StringProperty(
             name="Database Path",
@@ -58,7 +53,6 @@ class RopyBuilderPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, "libPath")
         layout.prop(self, "dbPath")
 
 class RopyBuilderProperties(bpy.types.PropertyGroup):
@@ -106,12 +100,6 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         subtype = "ANGLE",
         unit = "ROTATION",
         default = 0.5)
-
-
-    props_variation = bpy.props.EnumProperty(
-        items = get_groups_items,
-        name = "Group Items",
-        description = "Group Items")
 
     assets_categories = bpy.props.EnumProperty(
         items = get_db_categories,
