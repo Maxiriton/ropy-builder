@@ -57,6 +57,24 @@ def link_groups_to_file(context,pFilePath,pGroupName):
     with bpy.data.libraries.load(pFilePath, link=True, relative=True) as (data_from, data_to):
         data_to.groups = [pGroupName]
 
+def set_new_groupName(pGroupName):
+    """Increment an existing groupName like that:
+        rocher => rocher_2
+        rocher_23 => rocher_24"""
+    rex = re.compile('_\d+$')
+
+    m = rex.search(pGroupName)
+    if m:
+        var = m.group(0)
+        varValue = int(var[1:])
+        pGroupName = pGroupName[:-len(var)]+"_"+str(varValue+1)
+    else:
+        pGroupName = '%s_2' %pGroupName
+
+    return pGroupName
+
+
+
 def extract_groupName(pObj):
     """Extract the GroupName from the name of an object"""
     rex = re.compile('\.\d{3}$')
@@ -86,7 +104,7 @@ def get_tuple(iterable, length, format=tuple):
     while True:
         yield format(chain((next(it),), islice(it, length - 1)))
 
-def get_group_dimension_x_new(context,pGroupName):
+def get_group_dimension_x(context,pGroupName):
     minx = 99999.0
     maxx = -99999.0
 
@@ -101,6 +119,22 @@ def get_group_dimension_x_new(context,pGroupName):
                 maxx = v_world[0]
 
     return maxx-minx
+
+def get_group_min_x_offset(context,pGroupName):
+    minX = 99999.0
+
+    group = bpy.data.groups[pGroupName]
+    for obj in group.objects:
+        for v in obj.bound_box:
+            v_world = obj.matrix_world * Vector((v[0],v[1],v[2]))
+
+            if v_world[0] < minX:
+                minX = v_world[0]
+
+    centerX = group.dupli_offset[0]
+
+    return centerX-minX
+
 
 def add_prop_instance(context,groupName):
     """Add a new empty to the scene with a dupligroup on it.
@@ -154,7 +188,7 @@ def get_props_order(context,edge_length,rows):
         Return a list containing group, its X dimension and its potential
         scale value. The list is randomized based on the current context
         seed value"""
-    #row schema : ID,GROUP_NAME,FILE_PATH,GROUP_LENGTH
+    #row schema : ID,GROUP_NAME,FILE_PATH,GROUP_LENGTH,OFFSET_X
     propsOrder = []
     i = 0
     curLen = 0.0
@@ -162,8 +196,9 @@ def get_props_order(context,edge_length,rows):
     while curLen < edge_length:
         cur_index = i % len(rows)
         dimX = rows[cur_index][3]
+        offsetX = rows[cur_index][4]
         groupName = rows[cur_index][1]
-        propsOrder.append((dimX,groupName,1.0)) #Last value is scale_value
+        propsOrder.append((dimX,groupName,1.0,offsetX)) #Last value is scale_value
         curLen += dimX
         i +=1
 
@@ -171,8 +206,8 @@ def get_props_order(context,edge_length,rows):
     elem_size = rows[cur_index][3]
     scale_factor = (elem_size-overflow)/elem_size
 
-    (dimX,groupName,scale_value) = propsOrder[-1]
-    propsOrder[-1] = (dimX,groupName,scale_factor)
+    (dimX,groupName,scale_value,offsetX) = propsOrder[-1]
+    propsOrder[-1] = (dimX,groupName,scale_factor,offsetX)
 
     random.seed(context.scene.build_props.seed)
     random.shuffle(propsOrder)

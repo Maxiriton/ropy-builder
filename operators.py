@@ -38,13 +38,29 @@ class AddAssetToDatabase(bpy.types.Operator):
         curFile = bpy.data.filepath
 
         relFilePath = get_relative_file_path(dbPath,curFile)
-        catId = context.scene.build_props.assets_categories
         groupName = context.scene.build_props.current_groups_in_files
-        groupDimX= get_group_dimension_x_new(context,groupName)
 
-        status, message = add_new_asset(dbPath,catId,groupName,relFilePath,groupDimX)
+        if is_group_in_database(dbPath,groupName,relFilePath):
+            self.report({'ERROR'},'Asset is already in database')
+            return {'FINISHED'}
+
+        catId = context.scene.build_props.assets_categories
+        groupDimX= get_group_dimension_x(context,groupName)
+        groupOffsetX= get_group_min_x_offset(context,groupName)
+
+        if is_groupName_used_in_other_file(dbPath,groupName,relFilePath):
+            biggestName = get_biggest_groupName(dbPath,groupName)
+            newGroupName = set_new_groupName(biggestName)
+            #we have to rename the current group with its new name
+            bpy.data.groups[groupName].name = newGroupName
+            status, message = add_new_asset(dbPath,catId,newGroupName,relFilePath,groupDimX,groupOffsetX)
+            status = {'WARNING'}
+        else:
+            status, message = add_new_asset(dbPath,catId,groupName,relFilePath,groupDimX,groupOffsetX)
+
         self.report(status,message)
         return {'FINISHED'}
+
 
 class LinkGroupsToFile(bpy.types.Operator):
     """Link all the groups from the current category to the blender file"""
@@ -150,7 +166,6 @@ class ChangePropVariation(bpy.types.Operator):
         self.index = self.index % len(self.group_list)
 
         new_prop  = add_prop_instance(context,self.group_list[self.index][1])
-        print(transforms)
         new_prop.select = True
         new_prop.matrix_world = transforms
         context.scene.objects.active = new_prop
@@ -363,13 +378,12 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
 
             propsOrder = get_props_order(context,edge_length,self.group_list)
-            print(propsOrder)
             curent_distance = 0.0
-            for dimX,groupName, scaleValue in propsOrder:
+            for dimX,groupName, scaleValue, offsetX in propsOrder:
                 dupli = add_prop_instance(context,groupName)
                 dupli.scale[0] = scaleValue
                 dupli.rotation_euler = rot
-                dupli.location = vert_0 + direction_x.normalized()*curent_distance
+                dupli.location = vert_0 + direction_x.normalized()*(curent_distance +(offsetX*scaleValue))
                 curent_distance += dimX*scaleValue
                 self.allobjs.append(dupli.name)
 

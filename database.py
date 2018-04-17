@@ -18,7 +18,7 @@
 
 import sqlite3
 import datetime
-from sqlite3 import Error
+from sqlite3 import Error,DatabaseError
 from os.path import dirname, relpath,basename,join,split
 
 
@@ -41,7 +41,7 @@ def get_group_list_in_category(pDatabaseBasePath, pCatId):
         c = conn.cursor()
 
         t=(pCatId,0)
-        c.execute("SELECT id,groupName,filePath,dimensionX FROM assets WHERE catId=? AND isObsolete=?",t)
+        c.execute("SELECT id,groupName,filePath,dimensionX,offsetX FROM assets WHERE catId=? AND isObsolete=?",t)
         rows = c.fetchall()
 
 
@@ -67,13 +67,9 @@ def get_group_list_from_group(pDatabaseBasePath,pGroupName):
         t=(pGroupName,0)
         c.execute("SELECT catId FROM assets WHERE groupName=? AND isObsolete=?",t)
         cat = c.fetchone()
-
         rows = get_group_list_in_category(pDatabaseBasePath,cat[0])
-        print(rows)
-
         # Save (commit) the changes
         conn.commit()
-
     except Exception as e:
         print(e)
     finally:
@@ -98,9 +94,10 @@ def init_assets_database(pDatabaseBasePath):
         c.execute('''CREATE TABLE assets (
             id INTEGER PRIMARY KEY,
             catId INTEGER NOT NULL,
-            groupName TEXT NOT NULL,
+            groupName TEXT NOT NULL UNIQUE,
             filePath TEXT NOT NULL,
             dimensionX REAL NOT NULL,
+            offsetX REAL NOT NULL,
             creationDate TIMESTAMP,
             isObsolete INTEGER,
             FOREIGN KEY(catId) REFERENCES categories(id) )''')
@@ -112,29 +109,83 @@ def init_assets_database(pDatabaseBasePath):
     finally:
         conn.close()
 
-def add_new_asset(pDatabaseBasePath,pCatId,pGroupName,pFilePath,pDimX):
+
+def is_group_in_database(pDatabaseBasePath,pGroupName,pRelFilePath):
+    """Check if this group is already in database """
+    isUsed = False
+
     try:
         conn = sqlite3.connect(pDatabaseBasePath)
         c = conn.cursor()
 
-        t=(pCatId,pGroupName,pFilePath,0)
-        c.execute("SELECT id FROM assets WHERE catId=? AND groupName =? AND filePath=? AND isObsolete=?",t)
+        t=(pGroupName,pRelFilePath,0)
+        c.execute("SELECT id FROM assets WHERE groupName=? AND filePath=? AND isObsolete=?",t)
+        conn.commit()
+        rows = c.fetchone()
+        if rows is not None:
+            isUsed = True
+    except Error as e:
+        print(e)
+    finally:
+        conn.close()
+
+    return isUsed
+
+
+def is_groupName_used_in_other_file(pDatabaseBasePath,pGroupName,pRelFilePath):
+    """Check if there are already groups with that name in DB."""
+    isUsed = False
+    try:
+        conn = sqlite3.connect(pDatabaseBasePath)
+        c = conn.cursor()
+        t=(pGroupName,pRelFilePath,0)
+        c.execute("SELECT id FROM assets WHERE groupName=? AND filePath NOT LIKE ? AND isObsolete=?",t)
         rows = c.fetchall()
         if len(rows) > 0:
-            return ({'ERROR'},'Asset is already in database, Dickhead')
+            isUsed = True
+    except Error as e:
+        print(e)
+    finally:
+        conn.close()
+        return isUsed
 
-        t = (None,int(pCatId),pGroupName,pFilePath,pDimX,datetime.datetime.now(),0)
-        c.execute('INSERT INTO assets VALUES (?,?,?,?,?,?,?)',t)
+def get_biggest_groupName(pDatabaseBasePath,pGroupName):
+    biggestName = None
+    try:
+        conn = sqlite3.connect(pDatabaseBasePath)
+        c = conn.cursor()
+
+        t=("%"+pGroupName+"%",0)
+        c.execute("SELECT groupName FROM assets WHERE groupName LIKE ? AND isObsolete=?",t)
+        rows = c.fetchall()
+        if len(rows) > 0:
+            names = [x[0] for x in rows]
+            names.sort()
+            biggestName = names[-1]
+    except Error as e:
+        print(e)
+    finally:
+        conn.close()
+    return biggestName
+
+
+def add_new_asset(pDatabaseBasePath,pCatId,pGroupName,pFilePath,pDimX,pMinX):
+    message = ({'INFO'},'Asset succesfully created in Database')
+    try:
+        conn = sqlite3.connect(pDatabaseBasePath)
+        c = conn.cursor()
+        t = (None,int(pCatId),pGroupName,pFilePath,pDimX,datetime.datetime.now(),0,pMinX)
+        c.execute('INSERT INTO assets(id,catId,groupName,filePath,dimensionX,creationDate,isObsolete,offsetX) VALUES (?,?,?,?,?,?,?,?)',t)
 
         # Save (commit) the changes
         conn.commit()
 
     except Error as e:
         print(e)
+        message = ({'ERROR'},'There is already a group "%s"  in database' %pGroupName)
     finally:
         conn.close()
-
-    return ({'INFO'},'Asset succesfully created in Database')
+        return message
 
 
 
