@@ -19,6 +19,7 @@
 import bpy
 import mathutils
 from  math import radians
+from os.path import join
 
 from .functions import *
 from .database import *
@@ -123,6 +124,80 @@ class InitDatabase(bpy.types.Operator):
         cur_path = bpy.path.abspath('//assets.db')
         init_assets_database(cur_path)
         return {'FINISHED'}
+
+class ExportScene(bpy.types.Operator):
+    """Export the current scene"""
+    bl_idname = "ropy.export_scene"
+    bl_label = "Export Scene"
+
+    use_selection = bpy.props.BoolProperty(name='use_selection',default = False)
+    only_meshes = bpy.props.BoolProperty(name="only_meshes",default = False)
+    export_instances = bpy.props.BoolProperty(name="export_instances", default = True)
+
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def invoke(self,context,event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def execute(self, context):
+        instancePrefix = context.user_preferences.addons[__package__].preferences.instancePrefix
+
+        for obj in context.scene.objects:
+            if obj.type == 'EMPTY' and obj.name.startswith(instancePrefix):
+                obj.dupli_type = 'NONE'
+
+        exportPath = context.scene.build_props.export_path
+
+        file_name = bpy.path.display_name_from_filepath(bpy.context.blend_data.filepath)
+        exportPath = join(exportPath,file_name+'.fbx')
+
+        obj_types = {'EMPTY','MESH'}
+        if not self.only_meshes:
+            obj_types = {'EMPTY','CAMERA','LAMP','ARMATURE','MESH'}
+
+        bpy.ops.export_scene.fbx(filepath=exportPath,use_selection=self.use_selection,object_types= obj_types)
+
+
+        if self.export_instances:
+            selected_ojbects = context.selected_objects
+            for obj in context.scene.objects:
+                obj.select = False
+            for group in bpy.data.groups:
+                if group.users > 0:
+                    #we have to export this group
+                    o = add_prop_instance(context,group.name)
+                    o.select = True
+
+                    exportPath = context.scene.build_props.export_path
+                    exportPath = join(exportPath,extract_groupName(o)+".fbx")
+
+                    bpy.ops.export_scene.fbx(filepath=exportPath,use_selection=True)
+
+                    bpy.data.objects.remove(o, True)
+
+
+        for obj in context.scene.objects:
+            if obj.type == 'EMPTY' and obj.name.startswith(instancePrefix):
+                obj.dupli_type = 'GROUP'
+
+        return {'FINISHED'}
+
+    def draw(self,context):
+        layout = self.layout
+        row = layout.row()
+        row.prop(self,"use_selection",text="Export only selected objects")
+        row = layout.row()
+        row.prop(self,"only_meshes",text="Export only meshes and empties")
+        row = layout.row()
+        row.prop(self,"export_instances",text="Export instances as separate files")
+
+
+
+
 
 
 class GenerateRoomOperator(bpy.types.Operator):

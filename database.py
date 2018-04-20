@@ -44,7 +44,6 @@ def get_group_list_in_category(pDatabaseBasePath, pCatId):
         c.execute("SELECT id,groupName,filePath,dimensionX,offsetX FROM assets WHERE catId=? AND isObsolete=?",t)
         rows = c.fetchall()
 
-
         # Save (commit) the changes
         conn.commit()
 

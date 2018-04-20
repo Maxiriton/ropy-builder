@@ -200,7 +200,6 @@ class VIEW3D_PT_RopyPanel(bpy.types.Panel):
         row = layout.row()
         row.operator("ropy.change_prop_variation")
 
-
 class VIEW3D_PT_BuilderEditor_edit_Panel(bpy.types.Panel):
     """UI for level editor in edit mode"""
     bl_label = "Level Editor"
@@ -251,3 +250,22 @@ class PROPERTIES_PT_AssetEditor_database_Panel(bpy.types.Panel):
         row = col.row()
         row.scale_y = 2
         row.operator("ropy.add_asset_to_database",icon='FORCE_BOID')
+
+class VIEW3D_PT_RopyExport_Panel(bpy.types.Panel):
+    """Export Panel for Ropy Builder"""
+    bl_label = "Export Settings"
+    bl_idname = "VIEW3D_PT_Ropy_Export"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_context = "objectmode"
+    bl_category = "Ropy Builder"
+
+    def draw(self,context):
+        layout = self.layout
+        scene = context.scene
+
+        row = layout.row()
+        row.prop(scene.build_props, "export_path")
+
+        row = layout.row()
+        row.operator("ropy.export_scene", text="Export scene")

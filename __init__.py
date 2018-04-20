@@ -51,9 +51,14 @@ class RopyBuilderPreferences(bpy.types.AddonPreferences):
             subtype='FILE_PATH',
             )
 
+    instancePrefix = bpy.props.StringProperty(
+            name="Instance Prefix",
+            default="i_")
+
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "dbPath")
+        layout.prop(self, "instancePrefix")
 
 class RopyBuilderProperties(bpy.types.PropertyGroup):
     """"Store properties in the active scene"""
@@ -110,6 +115,13 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         items = get_group_list,
         name = "Group",
         description = "List of groups in current blender file")
+
+    export_path = bpy.props.StringProperty(
+            name="Export Path",
+            subtype='DIR_PATH',
+            )
+
+
 def register():
     bpy.utils.register_module(__name__)
     bpy.types.Scene.build_props = bpy.props.PointerProperty(type=RopyBuilderProperties)
