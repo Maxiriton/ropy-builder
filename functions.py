@@ -57,6 +57,15 @@ def link_groups_to_file(context,pFilePath,pGroupName):
     with bpy.data.libraries.load(pFilePath, link=True, relative=True) as (data_from, data_to):
         data_to.groups = [pGroupName]
 
+def link_category_to_file(context):
+    dbPath = context.user_preferences.addons[__package__].preferences.dbPath
+    catId = context.scene.build_props.assets_categories
+
+    rows = get_group_list_in_category(dbPath,catId)
+    for row in rows:
+        filePath=get_blender_file_abs_path(dbPath, row[2])
+        link_groups_to_file(context,filePath,row[1])
+
 def set_new_groupName(pGroupName):
     """Increment an existing groupName like that:
         rocher => rocher_2

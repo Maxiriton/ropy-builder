@@ -94,14 +94,7 @@ class LinkGroupsToFile(bpy.types.Operator):
         return context.mode == 'OBJECT'
 
     def execute(self, context):
-        dbPath = context.user_preferences.addons[__package__].preferences.dbPath
-        catId = context.scene.build_props.assets_categories
-
-        rows = get_group_list_in_category(dbPath,catId)
-        for row in rows:
-            filePath=get_blender_file_abs_path(dbPath, row[2])
-            link_groups_to_file(context,filePath,row[1])
-
+        link_category_to_file(context)
         return {'FINISHED'}
 
 
@@ -470,6 +463,8 @@ class ModalDrawBrushOperator(bpy.types.Operator):
         dbPath = context.user_preferences.addons[__package__].preferences.dbPath
         catId = context.scene.build_props.assets_categories
 
+        link_category_to_file(context)
+
         self.group_list = get_group_list_in_category(dbPath,catId)
 
         context.window_manager.modal_handler_add(self)
@@ -643,6 +638,8 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
             dbPath = context.user_preferences.addons[__package__].preferences.dbPath
             catId = context.scene.build_props.assets_categories
+
+            link_category_to_file(context)
 
             self.group_list = get_group_list_in_category(dbPath,catId)
             context.window_manager.modal_handler_add(self)
