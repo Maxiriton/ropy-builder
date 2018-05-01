@@ -251,6 +251,9 @@ class PROPERTIES_PT_AssetEditor_database_Panel(bpy.types.Panel):
         row.scale_y = 2
         row.operator("ropy.add_asset_to_database",icon='FORCE_BOID')
 
+        row = layout.row()
+        row.operator("ropy.update_asset_to_database",icon='PLUGIN')
+
 class VIEW3D_PT_RopyExport_Panel(bpy.types.Panel):
     """Export Panel for Ropy Builder"""
     bl_label = "Export Settings"

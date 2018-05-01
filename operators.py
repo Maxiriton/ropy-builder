@@ -19,7 +19,7 @@
 import bpy
 import mathutils
 from  math import radians
-from os.path import join
+from os.path import join, splitext
 
 from .functions import *
 from .database import *
@@ -50,6 +50,7 @@ class AddAssetToDatabase(bpy.types.Operator):
         groupOffsetX= get_group_min_x_offset(context,groupName)
 
         if is_groupName_used_in_other_file(dbPath,groupName,relFilePath):
+            #TODO Make sure it's the biggestName in current scene too
             biggestName = get_biggest_groupName(dbPath,groupName)
             newGroupName = set_new_groupName(biggestName)
             #we have to rename the current group with its new name
@@ -62,6 +63,26 @@ class AddAssetToDatabase(bpy.types.Operator):
         self.report(status,message)
         return {'FINISHED'}
 
+class UpdateAssetInDatabase(bpy.types.Operator):
+    """Update the current group in the database"""
+    bl_idname = "ropy.update_asset_to_database"
+    bl_label = "Update in database"
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def execute(self, context):
+        dbPath = context.user_preferences.addons[__package__].preferences.dbPath
+        groupName = context.scene.build_props.current_groups_in_files
+
+        catId = context.scene.build_props.assets_categories
+        groupDimX= get_group_dimension_x(context,groupName)
+        groupOffsetX= get_group_min_x_offset(context,groupName)
+
+        status, message = update_asset(dbPath,catId,groupName,groupDimX,groupOffsetX)
+        self.report(status,message)
+        return {'FINISHED'}
 
 class LinkGroupsToFile(bpy.types.Operator):
     """Link all the groups from the current category to the blender file"""
@@ -116,14 +137,44 @@ class InitDatabase(bpy.types.Operator):
     bl_idname = "ropy.init_database"
     bl_label = "Initialize Database"
 
+    dbPath =  bpy.props.StringProperty(
+                name="Database Path",
+                subtype='FILE_PATH')
+
+    dbName = bpy.props.StringProperty(
+                name="Database Name",
+                subtype='FILE_NAME',
+                default='assets')
+
+    setAsDefault = bpy.props.BoolProperty(name='set_default',default = False)
+
     @classmethod
     def poll(cls, context):
         return context.mode == 'OBJECT'
 
+    def invoke(self,context,event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
     def execute(self, context):
-        cur_path = bpy.path.abspath('//assets.db')
-        init_assets_database(cur_path)
+        relPath = join(self.dbPath,splitext(self.dbName)[0]+'.db')
+        absPath= bpy.path.abspath(relPath)
+        status, message =  init_assets_database(absPath)
+
+        self.report(status,message)
+        if status is not {'ERROR'}:
+            if self.setAsDefault:
+                context.user_preferences.addons[__package__].preferences.dbPath = absPath
         return {'FINISHED'}
+
+    def draw(self,context):
+        layout = self.layout
+        row = layout.row()
+        row.prop(self,"dbPath")
+        row = layout.row()
+        row.prop(self,"dbName")
+        row = layout.row()
+        row.prop(self,"setAsDefault",text="Use the database as default database")
 
 class ExportScene(bpy.types.Operator):
     """Export the current scene"""

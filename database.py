@@ -78,6 +78,7 @@ def get_group_list_from_group(pDatabaseBasePath,pGroupName):
 
 
 def init_assets_database(pDatabaseBasePath):
+    message = ({'INFO'},'Database succesfully created ! ')
     try:
         conn = sqlite3.connect(pDatabaseBasePath)
         c = conn.cursor()
@@ -105,8 +106,10 @@ def init_assets_database(pDatabaseBasePath):
         conn.commit()
     except Exception as e:
         print(e)
+        message = ({'ERROR'},'Database could not be created, go fuck yourself')
     finally:
         conn.close()
+        return message
 
 
 def is_group_in_database(pDatabaseBasePath,pGroupName,pRelFilePath):
@@ -182,6 +185,22 @@ def add_new_asset(pDatabaseBasePath,pCatId,pGroupName,pFilePath,pDimX,pMinX):
     except Error as e:
         print(e)
         message = ({'ERROR'},'There is already a group "%s"  in database' %pGroupName)
+    finally:
+        conn.close()
+        return message
+
+def update_asset(pDatabaseBasePath,pCatId,pGroupName,pGroupDimX,pGroupOffsetX):
+    message = ({'INFO'},'Asset succesfully updated in Database')
+    try:
+        conn = sqlite3.connect(pDatabaseBasePath)
+        c = conn.cursor()
+        t = (int(pCatId),pDimX,pMinX,pGroupName)
+        c.execute('UPDATE assets SET catID=?,dimensionX=?,offsetX=? WHERE groupName=?',t)
+        conn.commit()
+
+    except Error as e:
+        print(e)
+        message = ({'ERROR'},'Could not update  "%s"  in database' %pGroupName)
     finally:
         conn.close()
         return message
