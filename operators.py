@@ -458,7 +458,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
         self.lmb = False
         self.delta = 0
         self.temp_obj= []
-        self.current_var = 1
+        self.current_var = 0
 
         dbPath = context.user_preferences.addons[__package__].preferences.dbPath
         catId = context.scene.build_props.assets_categories
