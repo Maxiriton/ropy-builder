@@ -21,7 +21,7 @@ import random
 import bgl
 import blf
 import bmesh
-import bpy_extras
+from bpy_extras import view3d_utils
 import re
 from mathutils import Vector, Matrix
 from .database import *
@@ -269,8 +269,8 @@ def get_ray_cast_result(context,coord_mouse,use_all_objects=False):
     region = context.region
     rv3d = context.space_data.region_3d
     # get the ray from the viewport and mouse
-    view_vector = bpy_extras.view3d_utils.region_2d_to_vector_3d(region, rv3d, coord_mouse)
-    ray_origin = bpy_extras.view3d_utils.region_2d_to_origin_3d(region, rv3d, coord_mouse)
+    view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord_mouse)
+    ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord_mouse)
 
     ray_target = ray_origin + view_vector
 
