@@ -576,11 +576,11 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
                 new_point = None
                 if best_obj is not None:
-                    mouse_loc_3d = bpy_extras.view3d_utils.region_2d_to_location_3d(
+                    mouse_loc_3d = view3d_utils.region_2d_to_location_3d(
                         region, rv3d, coord_mouse, best_hit)
                     new_point = construction_point(mouse_loc_3d,best_normal)
                 else:
-                    mouse_loc_3d = bpy_extras.view3d_utils.region_2d_to_location_3d(
+                    mouse_loc_3d = view3d_utils.region_2d_to_location_3d(
                         region, rv3d, coord_mouse, self.depth_location)
                     new_point = construction_point(mouse_loc_3d,None)
                 self.list_construction_points.append(new_point)

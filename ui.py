@@ -52,7 +52,7 @@ def draw_callback_brush_px(self, context):
         bgl.glBegin(bgl.GL_LINE_STRIP)
         bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
 
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
+        loc_1 = view3d_utils.location_3d_to_region_2d(
             region, rv3d, self.surface_normal)
         bgl.glVertex2f(loc_1[0], loc_1[1])
         bgl.glEnd()
@@ -72,7 +72,7 @@ def draw_callback_line_px(self, context):
     # bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
 
     for x in self.list_construction_points:
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
+        loc_1 = view3d_utils.location_3d_to_region_2d(
             region, rv3d, x.point)
         bgl.glVertex2f(loc_1[0], loc_1[1])
 
@@ -86,7 +86,7 @@ def draw_callback_line_px(self, context):
     bgl.glBegin(bgl.GL_POINTS)
 
     for x in self.list_construction_points:
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
+        loc_1 = view3d_utils.location_3d_to_region_2d(
             region, rv3d, x.point+x.normal)
         bgl.glVertex2f(loc_1[0], loc_1[1])
 
@@ -101,7 +101,7 @@ def draw_callback_line_px(self, context):
     bgl.glBegin(bgl.GL_LINE_STRIP)
 
     for x in self.list_construction_points:
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
+        loc_1 = view3d_utils.location_3d_to_region_2d(
             region, rv3d, x.point)
         bgl.glVertex2f(loc_1[0], loc_1[1])
     bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
@@ -117,10 +117,10 @@ def draw_callback_line_px(self, context):
         bgl.glEnable(bgl.GL_LINE)
         bgl.glBegin(bgl.GL_LINE_STRIP)
 
-        root = bpy_extras.view3d_utils.location_3d_to_region_2d(
+        root = view3d_utils.location_3d_to_region_2d(
             region, rv3d, x.point)
         bgl.glVertex2f(root[0], root[1])
-        tip = bpy_extras.view3d_utils.location_3d_to_region_2d(
+        tip = view3d_utils.location_3d_to_region_2d(
             region, rv3d, x.point+x.normal)
         bgl.glVertex2f(tip[0], tip[1])
         bgl.glEnd()
@@ -135,7 +135,7 @@ def draw_callback_line_px(self, context):
         bgl.glBegin(bgl.GL_LINE_STRIP)
         bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
 
-        loc_1 = bpy_extras.view3d_utils.location_3d_to_region_2d(
+        loc_1 = view3d_utils.location_3d_to_region_2d(
             region, rv3d, self.surface_normal)
         bgl.glVertex2f(loc_1[0], loc_1[1])
         bgl.glEnd()
