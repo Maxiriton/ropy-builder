@@ -343,7 +343,7 @@ def define_random_points_in_ngon(context,construction_points,density=0.1):
         verts = []
         for p in tri:
             verts.append(bm_tess.verts.new(points[p]))
-        v = generate_random_tuple(100,verts[0],verts[1],verts[2])
+        v = generate_random_tuple(density,verts[0],verts[1],verts[2])
         random_points.extend(v)
         faces.append(bm_tess.faces.new(verts))
 

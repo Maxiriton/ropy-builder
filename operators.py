@@ -479,7 +479,7 @@ class ModalFillPolyOperator(bpy.types.Operator):
         delete_temp_objects(context,self.allobjs)
         self.allobjs = []
 
-        obj,rdn_points = define_random_points_in_ngon(context,self.list_construction_points)
+        obj,rdn_points = define_random_points_in_ngon(context,self.list_construction_points,int(context.scene.build_props.props_density))
         self.random_points = rdn_points
         self.allobjs.append(obj.name)
 

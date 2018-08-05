@@ -121,9 +121,9 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         subtype='DIR_PATH',
         )
 
-    props_density = bpy.props.FloatProperty(
+    props_density = bpy.props.IntProperty(
         name="Density",
-        default=0.2,
+        default=1,
         min=0
     )
 
