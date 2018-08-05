@@ -117,9 +117,15 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         description = "List of groups in current blender file")
 
     export_path = bpy.props.StringProperty(
-            name="Export Path",
-            subtype='DIR_PATH',
-            )
+        name="Export Path",
+        subtype='DIR_PATH',
+        )
+
+    props_density = bpy.props.FloatProperty(
+        name="Density",
+        default=0.2,
+        min=0
+    )
 
 
 def register():

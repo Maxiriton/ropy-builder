@@ -76,6 +76,12 @@ def draw_callback_line_px(self, context):
             region, rv3d, x.point)
         bgl.glVertex2f(loc_1[0], loc_1[1])
 
+    for x in self.random_points:
+        point = view3d_utils.location_3d_to_region_2d(
+            region, rv3d,x)
+        bgl.glVertex2f(point[0], point[1])
+
+
     bgl.glEnd()
     bgl.glDisable(bgl.GL_BLEND)
 
@@ -199,6 +205,11 @@ class VIEW3D_PT_RopyPanel(bpy.types.Panel):
 
         row = layout.row()
         row.operator("ropy.change_prop_variation")
+
+        row = layout.row()
+        box = row.box()
+        box.prop(scene.build_props, "props_density", text="Density")
+        box.operator("ropy.modal_fill_poly", text="Fill Area", icon='LINE_DATA')
 
 class VIEW3D_PT_BuilderEditor_edit_Panel(bpy.types.Panel):
     """UI for level editor in edit mode"""

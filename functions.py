@@ -24,6 +24,7 @@ import bmesh
 from bpy_extras import view3d_utils
 import re
 from mathutils import Vector, Matrix
+from mathutils.geometry import tessellate_polygon
 from .database import *
 
 
@@ -158,6 +159,13 @@ def add_prop_instance(context,groupName):
     context.scene.objects.link(o)
 
     return o
+
+def generate_random_tuple(nb_tuple,v0,v1,v2):
+    result = []
+    for i in range(nb_tuple):
+        s, t = sorted([random.random(), random.random()])
+        result.append(s*v0.co+(t-s)*v1.co+(1-t)*v2.co)
+    return result
 
 
 ###### ______Functions Definition______ ######
@@ -316,3 +324,35 @@ def delete_temp_objects(context,obj_to_delete):
         context.scene.objects[name].select = True
 
     bpy.ops.object.delete(use_global=True)
+
+def define_random_points_in_ngon(context,construction_points,density=0.1):
+    scene = bpy.context.scene
+    bm = bmesh.new()
+
+    points = []
+    for point in construction_points:
+        points.append(point.point)
+
+
+    tess = tessellate_polygon((points,))
+    bm_tess = bmesh.new()
+
+    faces = []
+    random_points = []
+    for tri in tess:
+        verts = []
+        for p in tri:
+            verts.append(bm_tess.verts.new(points[p]))
+        v = generate_random_tuple(100,verts[0],verts[1],verts[2])
+        random_points.extend(v)
+        faces.append(bm_tess.faces.new(verts))
+
+
+
+    me_tess = bpy.data.meshes.new("Tris")
+    bm_tess.to_mesh(me_tess)
+
+    ob = bpy.data.objects.new("Tris", me_tess)
+    scene.objects.link(ob)
+
+    return ob, random_points
