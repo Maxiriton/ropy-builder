@@ -34,9 +34,14 @@ if "bpy" in locals():
     imp.reload(operators)
     imp.reload(ui)
     imp.reload(database)
+    # imp.reload(modals.fillarea)
+    # imp.reload(modals.paintbrush)
+    # imp.reload(modals.linebrush)
+    # imp.reload(modals.changeprops)
 
 else:
     from . import functions, operators, ui,database
+    from .modals import *
 
 import bpy
 from .functions import get_db_categories,get_group_list

@@ -15,7 +15,7 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # END GPL LICENSE BLOCK #####
-
+import mathutils
 from ..functions import *
 from ..database import *
 from .draw import draw_callback_area_px
@@ -25,12 +25,44 @@ class ModalFillPolyOperator(bpy.types.Operator):
     bl_idname = "ropy.modal_fill_poly"
     bl_label = "Fill Area with Props"
 
+    def add_prop(self,context,location,rotation):
+        groupName = self.group_list[self.current_var][1]
+        e = add_prop_instance(context,groupName)
+
+        loc_mat = Matrix.Translation(location)
+
+        scale_mat = Matrix.Scale(1,4,(1,0,0)) * Matrix.Scale(1,4,(0,1,0)) * Matrix.Scale(1,4,(0,0,1))
+        if context.scene.build_props.paint_random_scale:
+            factor = random.uniform(context.scene.build_props.paint_random_min_max[0], context.scene.build_props.paint_random_min_max[1])
+            scale_mat = Matrix.Scale(factor,4,(1,0,0)) * Matrix.Scale(factor,4,(0,1,0)) * Matrix.Scale(factor,4,(0,0,1))
+
+        v0 = Vector(( 0.0,0,1.0 ))
+        orig_rot_mat = v0.rotation_difference(rotation).to_matrix().to_4x4()
+
+        mat_rot =  mathutils.Matrix.Rotation(0, 4, rotation)
+        if context.scene.build_props.paint_random_rotation:
+            factor = random.uniform(-context.scene.build_props.paint_random_max_angle,context.scene.build_props.paint_random_max_angle)
+            mat_rot = mathutils.Matrix.Rotation(factor, 4, rotation)
+
+        e.matrix_world = loc_mat * mat_rot * orig_rot_mat * scale_mat
+        #we need to update the index for next addition
+        self.current_var += 1
+        self.current_var = self.current_var % len(self.group_list)
+        self.allobjs.append(e.name)
+
     def update_mouse_action(self,context):
         delete_temp_objects(context,self.allobjs)
         self.allobjs = []
 
+        if len(self.list_construction_points) < 3 :
+            return
         obj,rdn_points = define_random_points_in_ngon(context,self.list_construction_points,context.scene.build_props.props_density)
         self.random_points = rdn_points
+
+        for pnt in self.random_points:
+            self.add_prop(context,pnt,Vector(( 0,0,1.0 )))
+
+
         self.allobjs.append(obj.name)
 
 
@@ -92,11 +124,11 @@ class ModalFillPolyOperator(bpy.types.Operator):
                 pass
 
         elif event.type  in {'S'} and event.value == 'PRESS':
-            context.scene.build_props.seed +=  1
+            context.scene.build_props.props_density +=  1
             self.update_mouse_action(context)
 
         elif event.type in {'R'} and event.value == 'PRESS':
-            context.scene.build_props.seed +=  -1
+            context.scene.build_props.props_density +=  -1
             self.update_mouse_action(context)
 
         elif event.type in {'RET'}:
@@ -124,6 +156,7 @@ class ModalFillPolyOperator(bpy.types.Operator):
             self.surface_found = False
             self.allobjs = []
             self.random_points = []
+            self.current_var = 0
 
             dbPath = get_db_path(context)
             catId = context.scene.build_props.assets_categories
