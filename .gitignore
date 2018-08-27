@@ -5,6 +5,8 @@ __pycache__/
 
 #Blender backupfiles
 
+*.blend
+*.fbx
 *.blend1
 *.png
 *.db

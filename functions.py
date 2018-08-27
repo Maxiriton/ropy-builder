@@ -167,6 +167,9 @@ def generate_random_tuple(nb_tuple,v0,v1,v2):
         result.append(s*v0.co+(t-s)*v1.co+(1-t)*v2.co)
     return result
 
+def get_db_path(context):
+    return context.user_preferences.addons[__package__].preferences.dbPath
+
 
 ###### ______Functions Definition______ ######
 
