@@ -96,7 +96,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
                 self.lmb = True
                 coord_mouse = Vector((event.mouse_region_x, event.mouse_region_y))
                 # get the ray from the viewport and mouse
-                best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse)
+                best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse,context.scene.build_props.paint_on_all_objects)
                 if best_hit is not None:
                     self.previous_impact = best_hit
                     self.delta = 0
