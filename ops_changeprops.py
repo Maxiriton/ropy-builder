@@ -18,7 +18,6 @@
 
 from .functions import *
 from .database import *
-from .draw import draw_callback_change_prop_px
 
 class ChangePropVariation(bpy.types.Operator):
     """Change the variation of a prop"""
@@ -53,9 +52,12 @@ class ChangePropVariation(bpy.types.Operator):
         if event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
                 self.change_prop(context)
+
+
         elif event.type  in {'R'} and event.value == 'PRESS':
             self.change_prop(context)
         elif event.type in {'ESC'}:
+            context.area.header_text_set()
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             return {'CANCELLED'}
         return {'PASS_THROUGH'}
@@ -66,11 +68,10 @@ class ChangePropVariation(bpy.types.Operator):
             self.report({'WARNING'}, "View3D not found, cannot run operator")
             return {'CANCELLED'}
 
-        args = (self, context)
-        self._handle = bpy.types.SpaceView3D.draw_handler_add(
-            draw_callback_change_prop_px, args, 'WINDOW', 'POST_PIXEL')
-
         dbPath = get_db_path(context)
+
+        self.help_string ='R/S to get next/previous iteration'
+        context.area.header_text_set(self.help_string)
 
         obj = context.scene.objects.active
         _groupName = extract_groupName(obj)

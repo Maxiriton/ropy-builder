@@ -25,6 +25,9 @@ class ModalFillPolyOperator(bpy.types.Operator):
     bl_idname = "ropy.modal_fill_poly"
     bl_label = "Fill Area with Props"
 
+    help_string = ''
+
+
     def add_prop(self,context,location,rotation):
         groupName = self.group_list[self.current_var][1]
         e = add_prop_instance(context,groupName)
@@ -87,7 +90,6 @@ class ModalFillPolyOperator(bpy.types.Operator):
                 self.surface_normal = best_hit + best_normal
                 self.surface_hit = best_hit
 
-
         elif event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
 
@@ -109,6 +111,7 @@ class ModalFillPolyOperator(bpy.types.Operator):
                 self.update_mouse_action(context)
             elif event.value == 'RELEASE':
                 pass
+
         elif event.type == 'RIGHTMOUSE':
             if event.value == 'PRESS':
                 if not self.list_construction_points:
@@ -133,10 +136,12 @@ class ModalFillPolyOperator(bpy.types.Operator):
 
         elif event.type in {'RET'}:
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
+            context.area.header_text_set()
             self.execute(context)
             return {'FINISHED'}
 
         elif event.type in {'ESC'}:
+            context.area.header_text_set()
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             self.list_construction_points[:] = []
             self.depth_location = Vector((0.0, 0.0, 0.0))
@@ -166,6 +171,8 @@ class ModalFillPolyOperator(bpy.types.Operator):
             self.group_list = get_group_list_in_category(dbPath,catId)
             context.window_manager.modal_handler_add(self)
 
+            self.help_string = 'R/S to get change props density'
+            context.area.header_text_set(self.help_string)
             return {'RUNNING_MODAL'}
 
         else:

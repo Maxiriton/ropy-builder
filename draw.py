@@ -21,23 +21,6 @@ import blf
 import bgl
 from bpy_extras import view3d_utils
 
-def draw_typo_2d(color,x,y, text):
-    font_id = 0
-    bgl.glColor4f(*color)
-    blf.position(font_id, x, y, 0)
-    blf.size(font_id, 12, 72)
-    blf.draw(font_id, text)
-
-
-def draw_callback_change_prop_px(self,context):
-    region = context.region
-    rv3d = context.space_data.region_3d
-
-    bgl.glEnable(bgl.GL_BLEND)
-    draw_typo_2d((1.0,1.0,1.0,1),100,100,"cocuou")
-    bgl.glEnd()
-    bgl.glDisable(bgl.GL_BLEND)
-
 
 def draw_callback_brush_px(self, context):
     region = context.region

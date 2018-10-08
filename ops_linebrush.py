@@ -161,11 +161,13 @@ class ModalDrawLineOperator(bpy.types.Operator):
             self.update_mouse_action(context)
 
         elif event.type in {'RET'}:
+            context.area.header_text_set()
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             self.execute(context)
             return {'FINISHED'}
 
         elif event.type in {'ESC'}:
+            context.area.header_text_set()
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             self.list_construction_points[:] = []
             self.depth_location = Vector((0.0, 0.0, 0.0))
@@ -192,6 +194,10 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
             self.group_list = get_group_list_in_category(dbPath,catId)
             context.window_manager.modal_handler_add(self)
+
+
+            self.help_string = 'R/S to get change random seed'
+            context.area.header_text_set(self.help_string)
 
             return {'RUNNING_MODAL'}
 

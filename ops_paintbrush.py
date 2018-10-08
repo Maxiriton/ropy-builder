@@ -120,6 +120,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
         elif event.type in {'R'} and event.value == 'PRESS':
             context.scene.build_props.brush_distance +=  -0.1
         elif event.type in {'ESC','RET'}:
+            context.area.header_text_set()
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             self.depth_location = Vector((0.0, 0.0, 0.0))
             return {'CANCELLED'}
@@ -149,6 +150,9 @@ class ModalDrawBrushOperator(bpy.types.Operator):
         link_category_to_file(context)
 
         self.group_list = get_group_list_in_category(dbPath,catId)
+        self.help_string = 'R/S to change distance between two props'
+        context.area.header_text_set(self.help_string)
+
 
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
