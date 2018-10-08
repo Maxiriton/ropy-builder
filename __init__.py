@@ -19,7 +19,7 @@
 bl_info = {
     "name": "Ropy Builder",
     "author": "Henri Hebeisen",
-    "version": (0, 1),
+    "version": (0, 2),
     "blender": (2, 78, 0),
     "location": "3D View, ",
     "description": "Level editor in Blender",
@@ -31,17 +31,18 @@ bl_info = {
 if "bpy" in locals():
     import imp
     imp.reload(functions)
-    imp.reload(operators)
+
     imp.reload(ui)
     imp.reload(database)
-    # imp.reload(modals.fillarea)
-    # imp.reload(modals.paintbrush)
-    # imp.reload(modals.linebrush)
-    # imp.reload(modals.changeprops)
+    imp.reload(operators)
+    imp.reload(ops_fillarea)
+    imp.reload(ops_paintbrush)
+    imp.reload(ops_linebrush)
+    imp.reload(ops_changeprops)
 
 else:
     from . import functions, operators, ui,database
-    from .modals import *
+    from . import ops_fillarea,ops_linebrush,ops_paintbrush,ops_changeprops
 
 import bpy
 from .functions import get_db_categories,get_group_list

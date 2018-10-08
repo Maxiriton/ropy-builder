@@ -21,10 +21,10 @@ import blf
 import bgl
 
 from .operators import *
-from .modals.fillarea import *
-from .modals.paintbrush import *
-from .modals.linebrush import *
-from .modals.changeprops import *
+from .ops_fillarea import *
+from .ops_paintbrush import *
+from .ops_linebrush import *
+from .ops_changeprops import *
 
 class VIEW3D_PT_RopyPanel(bpy.types.Panel):
     """New UI for level editor"""

@@ -16,8 +16,8 @@
 #
 # END GPL LICENSE BLOCK #####
 
-from ..functions import *
-from ..database import *
+from .functions import *
+from .database import *
 from .draw import draw_callback_change_prop_px
 
 class ChangePropVariation(bpy.types.Operator):

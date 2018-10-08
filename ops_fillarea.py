@@ -15,88 +15,59 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # END GPL LICENSE BLOCK #####
+import mathutils
+from .functions import *
+from .database import *
+from .draw import draw_callback_area_px
 
-from ..functions import *
-from ..database import *
-from .draw import draw_callback_line_px
+class ModalFillPolyOperator(bpy.types.Operator):
+    """Fill an area with props"""
+    bl_idname = "ropy.modal_fill_poly"
+    bl_label = "Fill Area with Props"
 
-class ModalDrawLineOperator(bpy.types.Operator):
-    """Draw a line with the mouse"""
-    bl_idname = "ropy.modal_draw_line"
-    bl_label = "Line filled Assets"
+    def add_prop(self,context,location,rotation):
+        groupName = self.group_list[self.current_var][1]
+        e = add_prop_instance(context,groupName)
 
+        loc_mat = Matrix.Translation(location)
+
+        scale_mat = Matrix.Scale(1,4,(1,0,0)) * Matrix.Scale(1,4,(0,1,0)) * Matrix.Scale(1,4,(0,0,1))
+        if context.scene.build_props.paint_random_scale:
+            factor = random.uniform(context.scene.build_props.paint_random_min_max[0], context.scene.build_props.paint_random_min_max[1])
+            scale_mat = Matrix.Scale(factor,4,(1,0,0)) * Matrix.Scale(factor,4,(0,1,0)) * Matrix.Scale(factor,4,(0,0,1))
+
+        v0 = Vector(( 0.0,0,1.0 ))
+        orig_rot_mat = v0.rotation_difference(rotation).to_matrix().to_4x4()
+
+        mat_rot =  mathutils.Matrix.Rotation(0, 4, rotation)
+        if context.scene.build_props.paint_random_rotation:
+            factor = random.uniform(-context.scene.build_props.paint_random_max_angle,context.scene.build_props.paint_random_max_angle)
+            mat_rot = mathutils.Matrix.Rotation(factor, 4, rotation)
+
+        e.matrix_world = loc_mat * mat_rot * orig_rot_mat * scale_mat
+        #we need to update the index for next addition
+        self.current_var += 1
+        self.current_var = self.current_var % len(self.group_list)
+        self.allobjs.append(e.name)
 
     def update_mouse_action(self,context):
         delete_temp_objects(context,self.allobjs)
         self.allobjs = []
-        vert_0 = None
 
-        for i in range(len(self.list_construction_points)):
-            vert_0 = self.list_construction_points[i].point
+        if len(self.list_construction_points) < 3 :
+            return
+        obj,rdn_points = define_random_points_in_ngon(context,self.list_construction_points,context.scene.build_props.props_density)
+        self.random_points = rdn_points
 
-            try:
-                vert_1 = self.list_construction_points[i+1].point
-            except:
-                break
-            edge_length = (vert_0-vert_1).length
-
-            direction_x = vert_1-vert_0
-
-            v0 = Vector(( 1.0,0,0 ))
-            #TODO get correct rotation angle !!!!!
-            rot = v0.rotation_difference( direction_x ).to_euler()
+        for pnt in self.random_points:
+            self.add_prop(context,pnt,Vector(( 0,0,1.0 )))
 
 
-            propsOrder = get_props_order(context,edge_length,self.group_list)
-            curent_distance = 0.0
-            for dimX,groupName, scaleValue, offsetX in propsOrder:
-                dupli = add_prop_instance(context,groupName)
-                dupli.scale[0] = scaleValue
-                dupli.rotation_euler = rot
-                dupli.location = vert_0 + direction_x.normalized()*(curent_distance +(offsetX*scaleValue))
-                curent_distance += dimX*scaleValue
-                self.allobjs.append(dupli.name)
+        self.allobjs.append(obj.name)
+
 
     def execute(self, context):
-        # Create a mesh object to store polygon line
-        mesh_obj = bpy.data.meshes.new("meshLine")
-        # create a object data for mesh object
-        obj_crt = bpy.data.objects.new("meshLine", mesh_obj)
-
-        # link object to scene
-        context.scene.objects.link(obj_crt)
-        context.scene.objects.active = obj_crt
-
-        # Now copy the mesh object to bmesh
-        bme = bmesh.new()
-        bme.from_mesh(obj_crt.data)
-        matx = obj_crt.matrix_world.inverted()
-
-        # Add vertices
-        list_verts = []
-
-        for i in self.list_construction_points:
-            bme.verts.new(matx * i.point)
-            bme.verts.index_update()
-            bme.verts.ensure_lookup_table()
-            list_verts.append(bme.verts[-1])
-
-        # Add edges to bmesh
-        total_edge = len(list_verts)
-
-        for j in range(total_edge - 1):
-            bme.edges.new((list_verts[j], list_verts[(j + 1) % total_edge]))
-            bme.edges.index_update()
-
-        # add this data to bmesh object
-        bme.to_mesh(obj_crt.data)
-        bme.free()
-
-        # intialize all variables zero Value
-        self.list_construction_points[:] = []
-        list_verts[:] = []
-        self.depth_location = Vector((0.0, 0.0, 0.0))
-        return {'FINISHED'}
+        print('Coucou')
 
     def modal(self, context, event):
         context.area.tag_redraw()
@@ -153,11 +124,11 @@ class ModalDrawLineOperator(bpy.types.Operator):
                 pass
 
         elif event.type  in {'S'} and event.value == 'PRESS':
-            context.scene.build_props.seed +=  1
+            context.scene.build_props.props_density +=  1
             self.update_mouse_action(context)
 
         elif event.type in {'R'} and event.value == 'PRESS':
-            context.scene.build_props.seed +=  -1
+            context.scene.build_props.props_density +=  -1
             self.update_mouse_action(context)
 
         elif event.type in {'RET'}:
@@ -176,7 +147,7 @@ class ModalDrawLineOperator(bpy.types.Operator):
         if context.area.type == 'VIEW_3D':
             args = (self, context)
             self._handle = bpy.types.SpaceView3D.draw_handler_add(
-                draw_callback_line_px, args, 'WINDOW', 'POST_PIXEL')
+                draw_callback_area_px, args, 'WINDOW', 'POST_PIXEL')
 
             #We iniatialize all the variables we are going to use
             self.mouse_path = []
@@ -184,6 +155,8 @@ class ModalDrawLineOperator(bpy.types.Operator):
             self.depth_location = Vector((0.0, 0.0, 0.0))
             self.surface_found = False
             self.allobjs = []
+            self.random_points = []
+            self.current_var = 0
 
             dbPath = get_db_path(context)
             catId = context.scene.build_props.assets_categories

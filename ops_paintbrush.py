@@ -19,8 +19,8 @@
 
 import mathutils
 
-from ..functions import *
-from ..database import *
+from .functions import *
+from .database import *
 from .draw import draw_callback_brush_px
 
 
