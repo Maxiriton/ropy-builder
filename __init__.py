@@ -39,10 +39,11 @@ if "bpy" in locals():
     imp.reload(ops_paintbrush)
     imp.reload(ops_linebrush)
     imp.reload(ops_changeprops)
-
+    imp.reload(ops_precise_instance)
 else:
     from . import functions, operators, ui,database
     from . import ops_fillarea,ops_linebrush,ops_paintbrush,ops_changeprops
+    from . import ops_precise_instance
 
 import bpy
 from .functions import get_db_categories,get_group_list

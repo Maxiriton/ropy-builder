@@ -73,7 +73,9 @@ class VIEW3D_PT_RopyPanel(bpy.types.Panel):
 
 
         row = box.row()
-        row.operator("ropy.modal_draw_brush", text="Draw Props with Brush", icon='BRUSH_DATA')
+        row.operator("ropy.modal_draw_brush",
+            text="Draw Props with Brush",
+            icon='BRUSH_DATA')
 
         row = layout.row()
         row.operator("ropy.change_prop_variation")
@@ -81,7 +83,19 @@ class VIEW3D_PT_RopyPanel(bpy.types.Panel):
         row = layout.row()
         box = row.box()
         box.prop(scene.build_props, "props_density", text="Density")
-        box.operator("ropy.modal_fill_poly", text="Fill Area", icon='LINE_DATA')
+        box.operator("ropy.modal_fill_poly",
+            text="Fill Area",
+            icon='LINE_DATA')
+
+        row = layout.row()
+        box = row.box()
+        box.operator("ropy.modal_precise_brush",
+            text="Precise Brush",
+            icon='LINE_DATA')
+
+
+
+
 
 class VIEW3D_PT_BuilderEditor_edit_Panel(bpy.types.Panel):
     """UI for level editor in edit mode"""
