@@ -18,10 +18,12 @@
 
 
 import mathutils
+import math
 
 from .functions import *
 from .database import *
 from .draw import draw_callback_precise_brush
+from bpy_extras import view3d_utils
 
 class ModalPreciseBrushOperator(bpy.types.Operator):
     """Draw props on scene"""
@@ -35,6 +37,8 @@ class ModalPreciseBrushOperator(bpy.types.Operator):
     current_var = 0
     group_list = []
     temp_obj = []
+    vx = Vector(( 1.0,0,0.0 ))
+    previous_normal = None
 
 
 
@@ -44,7 +48,8 @@ class ModalPreciseBrushOperator(bpy.types.Operator):
 
         loc_mat = Matrix.Translation(location)
 
-        scale_mat = Matrix.Scale(1,4,(1,0,0))*Matrix.Scale(1,4,(0,1,0)) * Matrix.Scale(1,4,(0,0,1))
+        scale_factor = 0.01
+        scale_mat = Matrix.Scale(scale_factor,4,(1,0,0))*Matrix.Scale(scale_factor,4,(0,1,0)) * Matrix.Scale(scale_factor,4,(0,0,1))
 
         v0 = Vector(( 0.0,0,1.0 ))
         orig_rot_mat = v0.rotation_difference(rotation).to_matrix().to_4x4()
@@ -78,35 +83,35 @@ class ModalPreciseBrushOperator(bpy.types.Operator):
                 self.surface_normal = best_hit + best_normal
                 self.surface_hit = best_hit
 
-                if self.lmb: #if the left button is pressed
-                    self.delta = (self.previous_impact - self.surface_hit).length
-                    self.help_string = str(self.delta)
-                    context.area.header_text_set(self.help_string)
+            if self.lmb: #if the left button is pressed
+                e = self.temp_obj[-1]
 
-                    e = self.temp_obj[-1]
+                root = view3d_utils.location_3d_to_region_2d(
+                    region, rv3d, self.previous_impact)
+                v2 = self.mouse_path-root  # 2D Vector from origin point to cursor
 
-                    loc_mat = Matrix.Translation(e.location)
+                #set the scale factor based on
+                self.delta = v2.length
+                scale_factor = self.delta*0.003
 
-                    scale_mat = Matrix.Scale(1,4,(1,0,0)) * Matrix.Scale(1,4,(0,1,0)) * Matrix.Scale(1,4,(0,0,1))
-                    factor = self.delta*0.3
-                    scale_mat = Matrix.Scale(factor,4,(1,0,0)) * Matrix.Scale(factor,4,(0,1,0)) * Matrix.Scale(factor,4,(0,0,1))
+                loc_mat = Matrix.Translation(e.location)
+                scale_mat = Matrix.Scale(scale_factor,4,(1,0,0))*Matrix.Scale(scale_factor,4,(0,1,0)) * Matrix.Scale(scale_factor,4,(0,0,1))
 
-                    # v0 = Vector(( 0.0,0,1.0 ))
-                    # orig_rot_mat = v0.rotation_difference(e.rotation_euler).to_matrix().to_4x4()
+                v1 = view3d_utils.location_3d_to_region_2d(
+                    region, rv3d, self.vx) - root
+                v1 = v1.normalized() #v1
 
-                    mat_rot =  mathutils.Matrix.Rotation(0, 4, e.rotation_euler)
+                v2 = v2.normalized()
 
-                    # factor = 1
-                    # mat_rot = mathutils.Matrix.Rotation(factor, 4, e.rotation_euler)
+                rotation_factor = math.atan2(v2[1],v2[0]) - math.atan2(v1[1],v1[0])
 
-                    e.matrix_world = loc_mat * mat_rot * scale_mat
+                self.previous_normal* z
+                mat_rot =  mathutils.Matrix.Rotation(rotation_factor, 4,self.previous_normal* z)
 
-                    self.help_string = str(mat_rot)
-                    context.area.header_text_set(self.help_string)
+                e.matrix_world = loc_mat * mat_rot * self.previous_normal * scale_mat
 
-
-
-
+                self.help_string = str(emile)
+                context.area.header_text_set(self.help_string)
         elif event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
                 self.lmb = True
@@ -114,9 +119,12 @@ class ModalPreciseBrushOperator(bpy.types.Operator):
                 # get the ray from the viewport and mouse
                 best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse,context.scene.build_props.paint_on_all_objects)
                 if best_hit is not None:
+                    self.vx = best_hit + Vector(( 1.0,0,0.0 ))
                     self.previous_impact = best_hit
                     self.delta = 0
+
                     self.add_prop(context,best_hit,best_normal)
+                    self.previous_normal = self.temp_obj[-1].rotation_euler.to_matrix().to_4x4()
 
             elif event.value == 'RELEASE':
                 self.lmb = False

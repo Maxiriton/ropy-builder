@@ -46,7 +46,7 @@ def draw_callback_precise_brush(self,context):
     region = context.region
     rv3d = context.space_data.region_3d
 
-    if self.surface_found: #if there is a surface under mouse cursor
+    if self.surface_found and not self.lmb: #if there is a surface under mouse cursor
         bgl.glEnable(bgl.GL_BLEND)
         bgl.glColor4f(1.0, 1.0, 0.0, 1.0)
         bgl.glLineWidth(1)
@@ -62,16 +62,27 @@ def draw_callback_precise_brush(self,context):
 
     #on trace une ligne entre l'endroit ou on a position l'object et la souris
     if self.lmb:
-        bgl.glEnable(bgl.GL_LINE)
+        bgl.glEnable(bgl.GL_LINE_STIPPLE)
         bgl.glBegin(bgl.GL_LINE_STRIP)
-        bgl.glColor4f(1.0, 0.0, 1.0, 1.0)
+        bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glVertex2f(self.mouse_path[0], self.mouse_path[1])
         root = view3d_utils.location_3d_to_region_2d(
             region, rv3d, self.previous_impact)
         bgl.glVertex2f(root[0], root[1])
+
+        orig = view3d_utils.location_3d_to_region_2d(
+            region, rv3d, self.vx)
+        bgl.glVertex2f(orig[0], orig[1])
         bgl.glEnd()
         bgl.glDisable(bgl.GL_LINE_STRIP)
+        bgl.glDisable(bgl.GL_LINE_STIPPLE)
+        bgl.glEnable(bgl.GL_LINE)
         bgl.glDisable(bgl.GL_BLEND)
+
+
+
+
+
 
 
 
