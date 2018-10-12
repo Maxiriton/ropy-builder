@@ -128,28 +128,31 @@ class PROPERTIES_PT_AssetEditor_database_Panel(bpy.types.Panel):
         scene = context.scene
 
         row = layout.row()
-        row.operator("ropy.add_cat_to_database")
+        if not context.user_preferences.addons[__package__].preferences.dbPath:
+            row.label("Set up the database path in the user preferences")
+        else:
+            row.operator("ropy.add_cat_to_database")
 
-        row = layout.row()
-        row.label('Group Management : ')
-        row = layout.row()
-        split = row.split(percentage=0.8)
-        col = split.column()
-        row = col.row()
-        row.prop(scene.build_props, "assets_categories")
-        row = col.row()
-        row.prop(scene.build_props, "current_groups_in_files")
+            row = layout.row()
+            row.label('Group Management : ')
+            row = layout.row()
+            split = row.split(percentage=0.8)
+            col = split.column()
+            row = col.row()
+            row.prop(scene.build_props, "assets_categories")
+            row = col.row()
+            row.prop(scene.build_props, "current_groups_in_files")
 
-        split = split.split()
+            split = split.split()
 
-        col = split.column()
-        row = col.row()
-        row = col.row()
-        row.scale_y = 2
-        row.operator("ropy.add_asset_to_database",icon='FORCE_BOID')
+            col = split.column()
+            row = col.row()
+            row = col.row()
+            row.scale_y = 2
+            row.operator("ropy.add_asset_to_database",icon='FORCE_BOID')
 
-        row = layout.row()
-        row.operator("ropy.update_asset_to_database",icon='PLUGIN')
+            row = layout.row()
+            row.operator("ropy.update_asset_to_database",icon='PLUGIN')
 
 class VIEW3D_PT_RopyExport_Panel(bpy.types.Panel):
     """Export Panel for Ropy Builder"""

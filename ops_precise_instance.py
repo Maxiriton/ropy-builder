@@ -105,13 +105,14 @@ class ModalPreciseBrushOperator(bpy.types.Operator):
 
                 rotation_factor = math.atan2(v2[1],v2[0]) - math.atan2(v1[1],v1[0])
 
-                self.previous_normal* z
+                z = Vector((0,0,1.0))
                 mat_rot =  mathutils.Matrix.Rotation(rotation_factor, 4,self.previous_normal* z)
 
                 e.matrix_world = loc_mat * mat_rot * self.previous_normal * scale_mat
 
-                self.help_string = str(emile)
+                self.help_string = str(rotation_factor)
                 context.area.header_text_set(self.help_string)
+
         elif event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
                 self.lmb = True

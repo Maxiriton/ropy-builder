@@ -37,6 +37,14 @@ class AddAssetToDatabase(bpy.types.Operator):
     def execute(self, context):
         dbPath = context.user_preferences.addons[__package__].preferences.dbPath
         curFile = bpy.data.filepath
+        if not dbPath:
+            self.report({'ERROR'},'Please set up the database path in the user preferences')
+            return {'FINISHED'}
+
+        if not curFile:
+            self.report({'ERROR'},'You have to save your file first !')
+            return {'FINISHED'}
+
 
         relFilePath = get_relative_file_path(dbPath,curFile)
         groupName = context.scene.build_props.current_groups_in_files
