@@ -28,7 +28,7 @@ TODO
 
 Once the database is set up, you can now create categories to sort your props. For each prop that you have modelled, you will have to create a Blender Group to encapsulate the props. Let's take an example : you have modelled five rocks models. For each rock, you have to create a new group in Blender. In your blend file, you'll have five groups, rock_1,rock_2, rock_3, rock_4 and rock_5.
 
-![list of groups in the current file](docs/images/rdme_example_groups.jpg)
+![list of groups in the current file](docs/images/rdme_example_groups.JPG)
 
 Next, you have to create a new category in the database to store these groups. To do so, go in the Object Menu in the Property Windows, you will find a new DataBase Management menu, where you can create categories and assign groups to it. Simply click on the Create New Category button and enter the category name.
 
