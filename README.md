@@ -22,6 +22,12 @@ Ropy Builder is a production tool designed for a small team that work remotely. 
 
 TODO
 
+If it's your first use of ropy builder, you have to first initialize a database. You can do so using an operator directly in Blender. Using the spacebar search menu, type "Initialize database". A pop up menu will appear, where you can choose the location of your database and its name. It's recommended to check the option to set the database as default so it will be automatically set up in the user preferences.
+
+![When the database is set up, you can see the absolute path to the database in the addon preferences](docs/images/rdme_init_database.jpg)
+
+If a database already exists, you have to set it up in the user preferences. Please note that the database only stores relative path to blend files. There is no binary data stored in the database.
+
 ![When the database is set up, you can see the absolute path to the database in the addon preferences](docs/images/rdme_database_set_up.jpg)
 
 ## Adding groups to the database
@@ -30,11 +36,11 @@ Once the database is set up, you can now create categories to sort your props. F
 
 ![list of groups in the current file](docs/images/rdme_example_groups.JPG)
 
-Next, you have to create a new category in the database to store these groups. To do so, go in the Object Menu in the Property Windows, you will find a new DataBase Management menu, where you can create categories and assign groups to it. Simply click on the Create New Category button and enter the category name.
+Next, you have to create a new category in the database to store these groups. To do so, go in the Object Menu in the Property Windows, you will find a new **DataBase Management** menu, where you can create categories and assign groups to it. Simply click on the Create New Category button and enter the category name.
 
 ![Adding a new category](docs/images/rdme_create_category.gif)
 
-Once the category is added, you can now add each group to the category. Select the category and a group, and click on the Add to database button. Please note that, you have to save the blend file first, so that Ropy Builder can append the group into your future blend files.
+Once the category is added, you can now add each group to the category. Select the category and a group, and click on the Add to database button. Please note that, **you have to save the blend file first**, so that Ropy Builder can append the group into your future blend files.
 
 ![Adding the group to database](docs/images/rdme_add_group_to_database.gif)
 
