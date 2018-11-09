@@ -1,5 +1,10 @@
 # Ropy Builder Documentation
 
+### TODOs
+
+- [x] Write the docs
+- [ ] Unified Interface for all tools
+
 ## What is Ropy Builder ?
 Ropy Builder is a Blender addon designed to help artists create complex environment set and export them to their favorite game engine.
 
@@ -49,3 +54,15 @@ Ropy builder will only store the path to the blend file, the name of the group, 
 ## Using Ropy Builder
 
 When building your level, you can now use the ropy builder scattering tools to fastly add props. There are currently four operators available.
+
+### Filled Line brush
+
+### Paint brush
+
+### Fill area
+
+### Precise brush
+
+## Export your scene to Game engine
+
+As Ropy Builder only allows you to paint Group Instances, it is very convenient to export your scenes and replace each group instance by an empty. By doing so, size of the exported file is reasonably low and each props can be exported separately. This allows a flexible workflow, as artists can populate their level in blender, export level to their game engine and replace each empty by their corresponding GameEngine props.
