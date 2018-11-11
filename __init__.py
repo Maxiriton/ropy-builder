@@ -76,6 +76,11 @@ class RopyBuilderProperties(bpy.types.PropertyGroup):
         default=23,
         min=1)
 
+    line_scale_factor = bpy.props.FloatProperty(
+        name="Scale Factor",
+        description="Props scale factor",
+        default=1.0)
+
     brush_distance = bpy.props.FloatProperty(
         name="Distance",
         description="Distance between two objects",

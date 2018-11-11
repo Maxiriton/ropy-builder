@@ -49,11 +49,15 @@ class ModalDrawLineOperator(bpy.types.Operator):
 
             propsOrder = get_props_order(context,edge_length,self.group_list)
             curent_distance = 0.0
+            scale_factor = context.scene.build_props.line_scale_factor
             for dimX,groupName, scaleValue, offsetX in propsOrder:
                 dupli = add_prop_instance(context,groupName)
-                dupli.scale[0] = scaleValue
+                dupli.scale[0] = scaleValue* scale_factor
+                dupli.scale[1] = scale_factor
+                dupli.scale[2] = scale_factor
+
                 dupli.rotation_euler = rot
-                dupli.location = vert_0 + direction_x.normalized()*(curent_distance +(offsetX*scaleValue))
+                dupli.location = vert_0 + direction_x.normalized()*(curent_distance +(offsetX*scaleValue*scale_factor))
                 curent_distance += dimX*scaleValue
                 self.allobjs.append(dupli.name)
 
@@ -108,26 +112,29 @@ class ModalDrawLineOperator(bpy.types.Operator):
             self.mouse_path = coord_mouse
 
             # get the ray from the viewport and mouse
-            best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse)
+            hit,obj,normal,face_index = get_ray_cast_result(context,coord_mouse,
+                use_all_objects=context.scene.build_props.paint_on_all_objects)
 
             self.surface_found = False
-            if best_hit is not None:
+            if hit is not None:
                 self.surface_found = True
-                self.surface_normal = best_hit + best_normal
-                self.surface_hit = best_hit
+                self.surface_normal = hit + normal
+                self.surface_hit = hit
 
 
         elif event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
 
                 coord_mouse = Vector((event.mouse_region_x, event.mouse_region_y))
-                best_hit,best_obj,best_normal,best_face_index = get_ray_cast_result(context,coord_mouse)
+                hit,obj,normal,face_index = get_ray_cast_result(context,
+                    coord_mouse,
+                    use_all_objects=context.scene.build_props.paint_on_all_objects)
 
                 new_point = None
-                if best_obj is not None:
+                if obj is not None:
                     mouse_loc_3d = view3d_utils.region_2d_to_location_3d(
-                        region, rv3d, coord_mouse, best_hit)
-                    new_point = construction_point(mouse_loc_3d,best_normal)
+                        region, rv3d, coord_mouse, hit)
+                    new_point = construction_point(mouse_loc_3d,normal)
                 else:
                     mouse_loc_3d = view3d_utils.region_2d_to_location_3d(
                         region, rv3d, coord_mouse, self.depth_location)

@@ -213,9 +213,11 @@ def get_props_order(context,edge_length,rows):
     i = 0
     curLen = 0.0
     cur_index = 0
+
+    scale_value = context.scene.build_props.line_scale_factor
     while curLen < edge_length:
         cur_index = i % len(rows)
-        dimX = rows[cur_index][3]
+        dimX = rows[cur_index][3]*scale_value
         offsetX = rows[cur_index][4]
         groupName = rows[cur_index][1]
         propsOrder.append((dimX,groupName,1.0,offsetX)) #Last value is scale_value
@@ -238,6 +240,8 @@ def obj_ray_cast(obj, matrix,ray_origin,ray_target):
     """Wrapper for ray casting that moves the ray into object space"""
 
     # get the ray relative to the object
+    print(obj.name)
+    print(matrix)
     matrix_inv = matrix.inverted()
     ray_origin_obj = matrix_inv * ray_origin
     ray_target_obj = matrix_inv * ray_target

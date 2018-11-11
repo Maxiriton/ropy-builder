@@ -48,6 +48,11 @@ class VIEW3D_PT_RopyPanel(bpy.types.Panel):
         row.prop(scene.build_props, "seed")
 
         row = layout.row()
+        box = row.box()
+        box.prop(scene.build_props,"line_scale_factor")
+        row = box.row()
+        row.prop(scene.build_props, "paint_on_all_objects")
+        row = box.row()
         row.operator("ropy.modal_draw_line", text="Line Filled Props", icon='LINE_DATA')
 
         row = layout.row()
