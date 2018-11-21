@@ -189,15 +189,14 @@ def add_new_asset(pDatabaseBasePath,pCatId,pGroupName,pFilePath,pDimX,pMinX):
         conn.close()
         return message
 
-def update_asset(pDatabaseBasePath,pCatId,pGroupName,pGroupDimX,pGroupOffsetX):
+def update_asset(pDatabaseBasePath,pCatId,pGroupName,pDimX,pGroupOffsetX):
     message = ({'INFO'},'Asset succesfully updated in Database')
     try:
         conn = sqlite3.connect(pDatabaseBasePath)
         c = conn.cursor()
-        t = (int(pCatId),pDimX,pMinX,pGroupName)
+        t = (int(pCatId),pDimX,pGroupOffsetX,pGroupName)
         c.execute('UPDATE assets SET catID=?,dimensionX=?,offsetX=? WHERE groupName=?',t)
         conn.commit()
-
     except Error as e:
         print(e)
         message = ({'ERROR'},'Could not update  "%s"  in database' %pGroupName)

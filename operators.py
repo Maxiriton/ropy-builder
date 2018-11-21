@@ -208,7 +208,7 @@ class ExportScene(bpy.types.Operator):
         exportPath = context.scene.build_props.export_path
 
         file_name = bpy.path.display_name_from_filepath(bpy.context.blend_data.filepath)
-        exportPath = join(exportPath,file_name+'.fbx')
+        exportPath = join(exportPath,file_name+'.fbx') #TODO make sure we use absolute path
 
         obj_types = {'EMPTY','MESH'}
         if not self.only_meshes:
