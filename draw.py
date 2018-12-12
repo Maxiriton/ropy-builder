@@ -37,9 +37,25 @@ def draw_callback_brush_px(self, context):
         loc_1 = view3d_utils.location_3d_to_region_2d(
             region, rv3d, self.surface_normal)
         bgl.glVertex2f(loc_1[0], loc_1[1])
-        bgl.glEnd()
         bgl.glDisable(bgl.GL_LINE_STRIP)
+        bgl.glEnd()
+
+        # Draw Points
+        bgl.glEnable(bgl.GL_BLEND)
+        bgl.glColor4f(0.0, 0.8, 0.0, 1.0)
+        bgl.glPointSize(5.0)
+        bgl.glBegin(bgl.GL_POINTS)
+        for x in self.construction_points:
+            loc_1 = view3d_utils.location_3d_to_region_2d(
+                region, rv3d, x.point)
+            bgl.glVertex2f(loc_1[0], loc_1[1])
+
+        bgl.glEnd()
+
         bgl.glDisable(bgl.GL_BLEND)
+        bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
+
+
 
 
 def draw_callback_precise_brush(self,context):
@@ -78,10 +94,6 @@ def draw_callback_precise_brush(self,context):
         bgl.glDisable(bgl.GL_LINE_STIPPLE)
         bgl.glEnable(bgl.GL_LINE)
         bgl.glDisable(bgl.GL_BLEND)
-
-
-
-
 
 
 

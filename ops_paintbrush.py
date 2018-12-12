@@ -18,6 +18,7 @@
 
 
 import mathutils
+import math
 
 from .functions import *
 from .database import *
@@ -61,6 +62,17 @@ class ModalDrawBrushOperator(bpy.types.Operator):
         self.current_var += 1
         self.current_var = self.current_var % len(self.group_list)
 
+    def recalculate_drawing_circle(self,context,location,rotation):
+        #todo, on calcule une liste de point autoir du point d'impact.
+
+        self.construction_points = []
+
+        for i in range(36):
+            mat_rot =  mathutils.Matrix.Rotation(math.radians(i*10), 4, rotation)
+            new_loc =  location+ Vector(( context.scene.build_props.brush_distance,0,0.0 )) *mat_rot
+            self.construction_points.append(construction_point(new_loc))
+
+
     def modal(self,context,event):
         context.area.tag_redraw()
         region = context.region
@@ -79,6 +91,8 @@ class ModalDrawBrushOperator(bpy.types.Operator):
                 self.surface_normal = best_hit + best_normal
                 self.surface_hit = best_hit
 
+                self.recalculate_drawing_circle(context,best_hit,best_normal)
+
                 if self.lmb: #if the left button is pressed
                     self.delta += (self.previous_impact - self.surface_hit).length
 
@@ -88,7 +102,6 @@ class ModalDrawBrushOperator(bpy.types.Operator):
                         self.delta = 0.0
 
                     self.previous_impact = self.surface_hit
-
 
 
         elif event.type == 'LEFTMOUSE':
@@ -136,7 +149,7 @@ class ModalDrawBrushOperator(bpy.types.Operator):
         self._handle = bpy.types.SpaceView3D.draw_handler_add(
             draw_callback_brush_px, args, 'WINDOW', 'POST_PIXEL')
 
-        self.list_construction_points = []
+        self.construction_points = []
         self.depth_location = Vector((0.0, 0.0, 0.0))
         self.surface_found = False
         self.lmb = False

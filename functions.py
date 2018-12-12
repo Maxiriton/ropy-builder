@@ -31,12 +31,10 @@ from .database import *
 ###### ______Utils Class Definition______ ######
 
 class construction_point():
-    def __init__(self, point_coord, point_normal):
+    def __init__(self, point_coord, point_normal=Vector((0.0,0.0,1.0))):
         self.point = point_coord
-        if point_normal is not None:
-            self.normal = point_normal
-        else:
-            self.normal = Vector((0.0,0.0,1.0))
+        self.normal = point_normal
+
 
 ###### ______Utils Functions Definition______ ######
 
